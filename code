@@ -1,0 +1,9 @@
+import scala.Math.exp
+
+object Example {
+
+  val myLittleIntVariable = 10
+  val myLittleDoubleVariable = 1.023
+  println("Done")
+
+}
