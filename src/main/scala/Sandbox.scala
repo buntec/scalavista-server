@@ -1,9 +1,22 @@
+package blah
+
 import scala.tools.nsc.Settings
 import scala.tools.nsc.interactive.{Global, Response}
 import scala.tools.nsc.reporters.{ConsoleReporter, StoreReporter}
 import scala.reflect.internal.util.Position
 import scala.reflect.internal.util._
+import scala.reflect.runtime.universe.showRaw
 import scala.reflect.io.AbstractFile
+import scala.reflect.api.Trees
+
+import scala.math.exp
+
+
+object TestMe {
+
+  val hi = "Hi"
+
+}
 
 object Sandbox extends App {
 
@@ -14,7 +27,7 @@ object Sandbox extends App {
   settings.embeddedDefaults[Foo]
   settings.usejavacp.value = true
 
-  val reporter = new StoreReporter
+  val reporter = new ConsoleReporter(settings)
   val compiler = new Global(settings, reporter)
 
   //val file = compiler.newSourceFile(code)
@@ -22,7 +35,7 @@ object Sandbox extends App {
 
   val files = List(file)
 
-  val position = Position.offset(file, 60)
+  val position = Position.offset(file, 100)
   println(Position.formatMessage(position, "Position:", false))
 
 
@@ -30,7 +43,8 @@ object Sandbox extends App {
 
     val res = new Response[Unit]
     compiler.askReload(files, res)
-    res.get(1000)
+    val loadRes = res.get(1000)
+    println(loadRes)
 
     val res2 = new Response[compiler.Tree]
     compiler.askTypeAt(position, res2)
@@ -38,7 +52,10 @@ object Sandbox extends App {
 
     treeOption match {
 
-      case Some(tree) => compiler.ask(() => tree.children.map(c => c.toString).mkString("\n"))
+      case Some(tree) => tree match {
+        case compiler.ValDef(_, _, tpt, _) =>  compiler.ask(() => tpt.toString)
+        case _ => compiler.ask(() => showRaw(tree) + "\n" + tree.toString)
+      }
       case None => "failed to get type...."
 
     }
