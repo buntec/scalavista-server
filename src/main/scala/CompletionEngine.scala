@@ -23,7 +23,7 @@ object ScalaCompletionEngine {
     settings.embeddedDefaults[Dummy] // why is this needed?
     settings.usejavacp.value = true // what does this do exactly?
 
-    val reporter = new ConsoleReporter(settings)
+    val reporter = new StoreReporter()
 
     new ScalaCompletionEngine(settings, reporter)
 
@@ -31,7 +31,7 @@ object ScalaCompletionEngine {
 
 }
 
-class ScalaCompletionEngine(settings: Settings, reporter: Reporter)
+class ScalaCompletionEngine(settings: Settings, reporter: StoreReporter)
     extends Global(settings, reporter) with LazyLogging {
 
 
@@ -39,9 +39,18 @@ class ScalaCompletionEngine(settings: Settings, reporter: Reporter)
 
     val reloadResponse = new Response[Unit]
     askReload(files, reloadResponse)
-    val reloadResult = getResult(reloadResponse)
+    getResult(reloadResponse)
 
   }
+
+  def getErrors: String = {
+
+    val res = reporter.infos.mkString("\n")
+    logger.info(res)
+    res
+
+  }
+
 
   def getTypeAt(pos: Position): String = {
 
@@ -56,6 +65,8 @@ class ScalaCompletionEngine(settings: Settings, reporter: Reporter)
         } else {
           tree match {
             case ValDef(_, _, tpt, _) => ask(() => tpt.toString)
+            case DefDef(_, _, _, _, tpt, _) => ask(() => tpt.toString)
+            case ModuleDef(_, name, _) => ask(() => name.toString)
             case _                    => "?"
           }
         }

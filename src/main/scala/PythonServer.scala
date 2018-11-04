@@ -18,6 +18,17 @@ object PythonEntryPoint extends App with LazyLogging {
 
     }
 
+    def reloadFile(fileName: String, fileContent: String): Unit = {
+
+      val file = engine.newSourceFile(fileContent, fileName)
+      engine.reloadFiles(List(file))
+
+    }
+
+    def getErrors: String = {
+      engine.getErrors
+    }
+
     def askTypeAt(fileName: String, fileContent: String, offset: Int): String = {
 
       val file = engine.newSourceFile(fileContent, fileName)
