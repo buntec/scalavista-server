@@ -6,7 +6,7 @@ import scala.math.exp
 object Example {
 
   val myLittleIntVariable = 10
-  val myLittleDoubleVariable = 1.023
+  val myLittleDoubleVariable = exp(2.7)
   println("Done")
   println(TestMe.hi)
 

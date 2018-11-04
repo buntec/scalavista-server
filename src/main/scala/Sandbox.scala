@@ -11,14 +11,13 @@ import scala.reflect.api.Trees
 
 import scala.math.exp
 
-
 object TestMe {
 
   val hi = "Hi"
 
 }
 
-object Sandbox extends App {
+object Sandbox {
 
   trait Foo
 
@@ -35,16 +34,14 @@ object Sandbox extends App {
 
   val files = List(file)
 
-  val position = Position.offset(file, 100)
+  val position = Position.offset(file, 50)
   println(Position.formatMessage(position, "Position:", false))
-
 
   def getTypeAt(files: List[SourceFile], position: Position): String = {
 
     val res = new Response[Unit]
     compiler.askReload(files, res)
     val loadRes = res.get(1000)
-    println(loadRes)
 
     val res2 = new Response[compiler.Tree]
     compiler.askTypeAt(position, res2)
@@ -52,10 +49,11 @@ object Sandbox extends App {
 
     treeOption match {
 
-      case Some(tree) => tree match {
-        case compiler.ValDef(_, _, tpt, _) =>  compiler.ask(() => tpt.toString)
-        case _ => compiler.ask(() => showRaw(tree) + "\n" + tree.toString)
-      }
+      case Some(tree) =>
+        tree match {
+          case compiler.ValDef(_, _, tpt, _) => compiler.ask(() => tpt.toString)
+          case _                             => compiler.ask(() => showRaw(tree) + "\n" + tree.toString)
+        }
       case None => "failed to get type...."
 
     }
@@ -63,7 +61,6 @@ object Sandbox extends App {
   }
 
   println(getTypeAt(files, position))
-
 
   //val res3 = new Response[List[compiler.Member]]
   //compiler.askTypeCompletion(position, res3)
@@ -73,25 +70,22 @@ object Sandbox extends App {
   //compiler.askScopeCompletion(position, res4)
   //printResult(res4)
 
-
   def getResult[T](res: Response[T]): Option[T] = {
     val TIMEOUT = 10000
     if (!res.isComplete && !res.isCancelled) {
       res.get(TIMEOUT.toLong) match {
-            case Some(Left(t)) => Some(t)
-            case Some(Right(ex)) =>
-              ex.printStackTrace()
-              println(ex)
-              None
-            case None =>
-              println("None")
-              None
-          }
-        } else {
+        case Some(Left(t)) => Some(t)
+        case Some(Right(ex)) =>
+          ex.printStackTrace()
+          println(ex)
           None
-        }
+        case None =>
+          println("None")
+          None
+      }
+    } else {
+      None
+    }
   }
-
-  
 
 }
