@@ -1,10 +1,13 @@
 package org.scalacompletionserver
 
+import java.util
+
 import py4j.GatewayServer
 
 import scala.reflect.internal.util.Position
-
 import com.typesafe.scalalogging.LazyLogging
+
+import scala.collection.JavaConverters._
 
 
 object PythonEntryPoint extends App with LazyLogging {
@@ -25,8 +28,8 @@ object PythonEntryPoint extends App with LazyLogging {
 
     }
 
-    def getErrors: String = {
-      engine.getErrors
+    def getErrors: util.List[String] = {
+      engine.getErrors.asJava
     }
 
     def askTypeAt(fileName: String, fileContent: String, offset: Int): String = {
@@ -37,6 +40,26 @@ object PythonEntryPoint extends App with LazyLogging {
       engine.getTypeAt(pos)
 
     }
+
+    def askTypeCompletion(fileName: String, fileContent: String, offset: Int): util.List[String] = {
+
+      val file = engine.newSourceFile(fileContent, fileName)
+      engine.reloadFiles(List(file))
+      val pos = Position.offset(file, offset)
+      val res = engine.getTypeCompletion(pos)
+      res.asJava
+
+    }
+
+  def askScopeCompletion(fileName: String, fileContent: String, offset: Int): util.List[String] = {
+
+    val file = engine.newSourceFile(fileContent, fileName)
+    engine.reloadFiles(List(file))
+    val pos = Position.offset(file, offset)
+    val res = engine.getScopeCompletion(pos)
+    res.asJava
+
+  }
 
     val gatewayServer = new GatewayServer(PythonEntryPoint);
     gatewayServer.start();

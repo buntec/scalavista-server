@@ -43,11 +43,10 @@ class ScalaCompletionEngine(settings: Settings, reporter: StoreReporter)
 
   }
 
-  def getErrors: String = {
+  def getErrors: List[String] = {
 
-    val res = reporter.infos.mkString("\n")
-    logger.info(res)
-    res
+    logger.info(reporter.infos.mkString("\n"))
+    reporter.infos.map(info => s"${info.pos.line};${info.msg};${info.severity}").toList
 
   }
 
@@ -77,9 +76,41 @@ class ScalaCompletionEngine(settings: Settings, reporter: StoreReporter)
 
   }
 
+  def getTypeCompletion(pos: Position): List[String] = {
+    logger.info(Position.formatMessage(pos, "Getting type completion at position:", false))
+    val response = new Response[List[Member]]
+    askTypeCompletion(pos, response)
+    val result = getResult(response) match {
+      case Some(ml) =>
+        logger.info(s"member list: ${ask(() => ml.mkString("\n"))}\n")
+        ml
+      case None => Nil
+    }
+    val res = ask(() => result.map(member => member.infoString))
+    println(res.mkString("\n"))
+    res
+
+  }
+
+  def getScopeCompletion(pos: Position): List[String] = {
+    logger.info(Position.formatMessage(pos, "Getting scope completion at position:", false))
+    val response = new Response[List[Member]]
+    askScopeCompletion(pos, response)
+    val result = getResult(response) match {
+      case Some(ml) =>
+        //logger.info(s"member list: ${ask(() => ml.mkString("\n"))}\n")
+        ml
+      case None => Nil
+    }
+    val res = ask(() => result.map(member => member.infoString))
+    println(res.mkString("\n"))
+    res
+
+  }
+
+
   private def getResult[T](res: Response[T]): Option[T] = {
     val TIMEOUT = 10000 // ms
-    if (!res.isComplete && !res.isCancelled) {
       res.get(TIMEOUT.toLong) match {
         case Some(Left(t)) => Some(t)
         case Some(Right(ex)) =>
@@ -87,12 +118,8 @@ class ScalaCompletionEngine(settings: Settings, reporter: StoreReporter)
           println(ex)
           None
         case None =>
-          println("None")
           None
       }
-    } else {
-      None
-    }
   }
 
 }
