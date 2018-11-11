@@ -14,7 +14,6 @@ import scala.math.exp
 object TestMe {
 
   val hi = "Hi"
-
 }
 
 object Sandbox {
