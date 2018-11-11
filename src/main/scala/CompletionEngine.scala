@@ -1,16 +1,11 @@
 package org.scalacompletionserver
 
-import scala.tools.nsc.Settings
-import scala.tools.nsc.interactive.{Global, Response}
-import scala.tools.nsc.reporters.{Reporter, ConsoleReporter, StoreReporter}
-import scala.reflect.internal.util.Position
-import scala.reflect.internal.util._
-import scala.reflect.runtime.universe.showRaw
-import scala.reflect.io.AbstractFile
-import scala.reflect.api.Trees
-
 import com.typesafe.scalalogging.LazyLogging
 
+import scala.reflect.internal.util.{Position, _}
+import scala.tools.nsc.Settings
+import scala.tools.nsc.interactive.Global
+import scala.tools.nsc.reporters.StoreReporter
 
 object ScalaCompletionEngine {
 
@@ -32,24 +27,36 @@ object ScalaCompletionEngine {
 }
 
 class ScalaCompletionEngine(settings: Settings, reporter: StoreReporter)
-    extends Global(settings, reporter) with LazyLogging {
-
+    extends Global(settings, reporter)
+    with LazyLogging {
 
   def reloadFiles(files: List[SourceFile]): Unit = {
 
     val reloadResponse = new Response[Unit]
     askReload(files, reloadResponse)
     getResult(reloadResponse)
+    logger.info(
+      s"unitsOfFile after reloadFile: ${unitOfFile.map(f => f._1.toString).mkString("\n")}"
+    )
 
   }
 
-  def getErrors: List[String] = {
+  def getErrors: List[(String, String, String, String)] = {
 
-    logger.info(reporter.infos.mkString("\n"))
-    reporter.infos.map(info => s"${info.pos.line};${info.msg};${info.severity}").toList
+    //logger.info(s"getErrors: ${reporter.infos.mkString("\n")}")
+    reporter.infos
+      .map(
+        info =>
+          (
+            info.pos.source.path.toString,
+            info.pos.line.toString,
+            info.msg,
+            info.severity.toString
+        )
+      )
+      .toList
 
   }
-
 
   def getTypeAt(pos: Position): String = {
 
@@ -58,68 +65,66 @@ class ScalaCompletionEngine(settings: Settings, reporter: StoreReporter)
     askTypeAt(pos, askTypeAtResponse)
     val result = getResult(askTypeAtResponse) match {
       case Some(tree) =>
-        logger.info(s"tree: ${ask(() => tree.toString)}\n raw tree: ${ask(() => showRaw(tree))}")
+        logger.info(
+          s"tree: ${ask(() => tree.toString)}\n raw tree: ${ask(() => showRaw(tree))}"
+        )
         if (tree.isType) {
           ask(() => tree.toString)
         } else {
           tree match {
-            case ValDef(_, _, tpt, _) => ask(() => tpt.toString)
+            case ValDef(_, _, tpt, _)       => ask(() => tpt.toString)
             case DefDef(_, _, _, _, tpt, _) => ask(() => tpt.toString)
-            case ModuleDef(_, name, _) => ask(() => name.toString)
-            case _                    => "?"
+            case ModuleDef(_, name, _)      => ask(() => name.toString)
+            case _                          => "?"
           }
         }
       case None => "Failed to get type."
     }
-    logger.info(s"Result of getTypeAt $result")
+    logger.info(s"getTypeAt: $result")
     result
 
   }
 
-  def getTypeCompletion(pos: Position): List[String] = {
-    logger.info(Position.formatMessage(pos, "Getting type completion at position:", false))
+  def getTypeCompletion(pos: Position): List[(String, String)] = {
+    logger.info(
+      Position.formatMessage(pos, "Getting type completion at position:", false)
+    )
     val response = new Response[List[Member]]
     askTypeCompletion(pos, response)
     val result = getResult(response) match {
-      case Some(ml) =>
-        logger.info(s"member list: ${ask(() => ml.mkString("\n"))}\n")
-        ml
-      case None => Nil
+      case Some(ml) => ml
+      case None     => Nil
     }
-    val res = ask(() => result.map(member => member.infoString))
-    println(res.mkString("\n"))
-    res
+    ask(() => result.map(member => (member.sym.nameString, member.infoString)))
 
   }
 
-  def getScopeCompletion(pos: Position): List[String] = {
-    logger.info(Position.formatMessage(pos, "Getting scope completion at position:", false))
+  def getScopeCompletion(pos: Position): List[(String, String)] = {
+    logger.info(
+      Position
+        .formatMessage(pos, "Getting scope completion at position:", false)
+    )
     val response = new Response[List[Member]]
     askScopeCompletion(pos, response)
     val result = getResult(response) match {
-      case Some(ml) =>
-        //logger.info(s"member list: ${ask(() => ml.mkString("\n"))}\n")
-        ml
-      case None => Nil
+      case Some(ml) => ml
+      case None     => Nil
     }
-    val res = ask(() => result.map(member => member.infoString))
-    println(res.mkString("\n"))
-    res
+    ask(() => result.map(member => (member.sym.nameString, member.infoString)))
 
   }
 
-
   private def getResult[T](res: Response[T]): Option[T] = {
     val TIMEOUT = 10000 // ms
-      res.get(TIMEOUT.toLong) match {
-        case Some(Left(t)) => Some(t)
-        case Some(Right(ex)) =>
-          ex.printStackTrace()
-          println(ex)
-          None
-        case None =>
-          None
-      }
+    res.get(TIMEOUT.toLong) match {
+      case Some(Left(t)) => Some(t)
+      case Some(Right(ex)) =>
+        ex.printStackTrace()
+        println(ex)
+        None
+      case None =>
+        None
+    }
   }
 
 }
