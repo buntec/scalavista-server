@@ -68,6 +68,7 @@ class ScalaCompletionEngine(settings: Settings, reporter: StoreReporter)
         logger.info(
           s"tree: ${ask(() => tree.toString)}\n raw tree: ${ask(() => showRaw(tree))}"
         )
+        logger.info(s"symbol: ${ask(() => tree.symbol.tpe.toLongString)}")
         if (tree.isType) {
           ask(() => tree.toString)
         } else {

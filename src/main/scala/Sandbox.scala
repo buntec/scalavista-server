@@ -58,7 +58,6 @@ object Sandbox {
     }
 
   }
-
   println(getTypeAt(files, position))
 
   //val res3 = new Response[List[compiler.Member]]
