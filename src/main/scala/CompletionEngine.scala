@@ -1,4 +1,4 @@
-package org.scalacompletionserver
+package org.scalavista
 
 import com.typesafe.scalalogging.LazyLogging
 
@@ -68,17 +68,17 @@ class ScalaCompletionEngine(settings: Settings, reporter: StoreReporter)
         logger.info(
           s"tree: ${ask(() => tree.toString)}\n raw tree: ${ask(() => showRaw(tree))}"
         )
-        logger.info(s"symbol: ${ask(() => tree.symbol.tpe.toLongString)}")
-        if (tree.isType) {
-          ask(() => tree.toString)
-        } else {
-          tree match {
-            case ValDef(_, _, tpt, _)       => ask(() => tpt.toString)
-            case DefDef(_, _, _, _, tpt, _) => ask(() => tpt.toString)
-            case ModuleDef(_, name, _)      => ask(() => name.toString)
-            case _                          => "?"
-          }
-        }
+        ask(() => tree.symbol.tpe.toLongString)
+      // if (tree.isType) {
+      //   ask(() => tree.toString)
+      // } else {
+      //   tree match {
+      //     case ValDef(_, _, tpt, _)       => ask(() => tpt.toString)
+      //     case DefDef(_, _, _, _, tpt, _) => ask(() => tpt.toString)
+      //     case ModuleDef(_, name, _)      => ask(() => name.toString)
+      //     case _                          => "?"
+      //   }
+      // }
       case None => "Failed to get type."
     }
     logger.info(s"getTypeAt: $result")
@@ -96,7 +96,9 @@ class ScalaCompletionEngine(settings: Settings, reporter: StoreReporter)
       case Some(ml) => ml
       case None     => Nil
     }
-    ask(() => result.map(member => (member.sym.nameString, member.infoString)))
+    val res = ask(() => result.map(member => (member.sym.nameString, member.infoString)))
+    logger.info(res.mkString("\n"))
+    res
 
   }
 
@@ -111,7 +113,9 @@ class ScalaCompletionEngine(settings: Settings, reporter: StoreReporter)
       case Some(ml) => ml
       case None     => Nil
     }
-    ask(() => result.map(member => (member.sym.nameString, member.infoString)))
+    val res = ask(() => result.map(member => (member.sym.nameString, member.infoString)))
+    logger.info(res.mkString("\n"))
+    res
 
   }
 

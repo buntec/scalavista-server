@@ -1,10 +1,11 @@
+package org.scalavista
+
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
-import org.scalacompletionserver.ScalaCompletionEngine
 import spray.json.DefaultJsonProtocol
 
 import scala.io.StdIn
@@ -81,6 +82,10 @@ object AkkaServer extends JsonSupport {
           val errors = engine.getErrors
           complete(StatusCodes.OK, errors)
         }
+      } ~ path("alive") {
+        get {
+          complete(StatusCodes.OK)
+        }
       } ~ path("type-completion") {
         post {
           decodeRequest {
@@ -109,7 +114,7 @@ object AkkaServer extends JsonSupport {
 
     val bindingFuture = Http().bindAndHandle(route, "localhost", 8080)
 
-    println(s"Scala completion server running\nPress RETURN to stop...")
+    //println(s"Scala completion server running\nPress RETURN to stop...")
     //StdIn.readLine() // let it run until user presses return
     //bindingFuture
     //  .flatMap(_.unbind()) // trigger unbinding from the port

@@ -1,4 +1,4 @@
-package blah
+package blahblah
 
 import scala.tools.nsc.Settings
 import scala.tools.nsc.interactive.{Global, Response}
