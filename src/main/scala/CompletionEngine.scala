@@ -86,6 +86,32 @@ class ScalaCompletionEngine(settings: Settings, reporter: StoreReporter)
 
   }
 
+  def getPosAt(pos: Position): Position= {
+    logger.info(
+      Position.formatMessage(pos, "Getting position of symbol at :", false)
+    )
+    val askTypeAtResponse = new Response[Tree]
+    askTypeAt(pos, askTypeAtResponse)
+    val symbol = getResult(askTypeAtResponse) match {
+      case Some(tree) => ask(() => tree.symbol)
+      case None => throw new RuntimeException("failed to get position")
+    }
+    logger.info(s"looking for definition of ${symbol.fullNameString}")
+    val positions = 
+    for (u <- unitOfFile) yield {
+      logger.info(s"looking at file ${u._1.toString}")
+      val response = new Response[Position]
+      askLinkPos(symbol, u._2.source, response)
+      val position = getResult(response) match {
+        case Some(p) => p
+        case _ => NoPosition
+      }
+      logger.info(s"${u._1.toString} -> ${position.source.toString}, ${position.line}, ${position.column}")
+      position
+    }
+    positions.find(_ != NoPosition).getOrElse(NoPosition)
+  }
+
   def getTypeCompletion(pos: Position): List[(String, String)] = {
     logger.info(
       Position.formatMessage(pos, "Getting type completion at position:", false)
@@ -96,7 +122,8 @@ class ScalaCompletionEngine(settings: Settings, reporter: StoreReporter)
       case Some(ml) => ml
       case None     => Nil
     }
-    val res = ask(() => result.map(member => (member.sym.nameString, member.infoString)))
+    val res = ask(
+      () => result.map(member => (member.sym.nameString, member.infoString)))
     logger.info(res.mkString("\n"))
     res
 
@@ -113,7 +140,8 @@ class ScalaCompletionEngine(settings: Settings, reporter: StoreReporter)
       case Some(ml) => ml
       case None     => Nil
     }
-    val res = ask(() => result.map(member => (member.sym.nameString, member.infoString)))
+    val res = ask(
+      () => result.map(member => (member.sym.nameString, member.infoString)))
     logger.info(res.mkString("\n"))
     res
 

@@ -77,6 +77,19 @@ object AkkaServer extends JsonSupport {
             }
           }
         }
+      } ~ path("ask-pos-at") {
+        post {
+          decodeRequest {
+            entity(as[TypeAtRequest]) { req =>
+              val file = engine.newSourceFile(req.fileContents, req.filename)
+              engine.reloadFiles(List(file))
+              val pos = Position.offset(file, req.offset)
+              val p = engine.getPosAt(pos)
+              val result = Map("file" -> p.source.toString, "line" -> p.line.toString, "column" -> p.column.toString)
+              complete(StatusCodes.OK, result)
+            }
+          }
+        }
       } ~ path("errors") {
         get {
           val errors = engine.getErrors
@@ -112,9 +125,10 @@ object AkkaServer extends JsonSupport {
         }
       }
 
-    val bindingFuture = Http().bindAndHandle(route, "localhost", 8080)
+    val bindingFuture = Http().bindAndHandle(route, "localhost", 0)
+    val address = bindingFuture.map(_.localAddress)
+      .onComplete(a => println(a.map(_.getPort).get))
 
-    //println(s"Scala completion server running\nPress RETURN to stop...")
     //StdIn.readLine() // let it run until user presses return
     //bindingFuture
     //  .flatMap(_.unbind()) // trigger unbinding from the port
