@@ -34,3 +34,6 @@ build
 #ensime
 .ensime
 .ensime_cache/
+
+#scalavista
+scalavista.json
