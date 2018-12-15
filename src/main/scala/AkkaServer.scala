@@ -8,6 +8,11 @@ import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
 import spray.json.DefaultJsonProtocol
 
+import com.typesafe.scalalogging.LazyLogging
+
+import ch.qos.logback.classic.{Level,Logger}
+import org.slf4j.LoggerFactory
+
 import scala.io.StdIn
 import scala.reflect.internal.util.Position
 
@@ -31,11 +36,29 @@ trait JsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val typeCompletionRequestFormat = jsonFormat3(TypeCompletionRequest)
 }
 
-object AkkaServer extends JsonSupport {
+object AkkaServer extends JsonSupport with LazyLogging {
 
   private val engine = ScalaCompletionEngine()
 
   def main(args: Array[String]) {
+
+    val cmdlnlog: Int = args.map( {
+        case "-d" => Level.DEBUG_INT
+        case "-dd" => Level.TRACE_INT
+        case "-q" => Level.WARN_INT
+        case "-qq" => Level.ERROR_INT
+        case _ => -1
+      } ).foldLeft(Level.OFF_INT)(scala.math.min(_,_))
+
+    if (cmdlnlog == -1) {
+      // Unknown log level has been passed in, error out
+      Console.err.println("Unsupported command line argument passed in, terminating.")
+      sys.exit(0)
+    }
+    // if nothing has been passed on the command line, use INFO
+    val newloglevel = if (cmdlnlog == Level.OFF_INT) Level.INFO_INT else cmdlnlog
+    LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME).
+      asInstanceOf[Logger].setLevel(Level.toLevel(newloglevel))
 
     implicit val system = ActorSystem("my-system")
     implicit val materializer = ActorMaterializer()
@@ -84,8 +107,8 @@ object AkkaServer extends JsonSupport {
               val file = engine.newSourceFile(req.fileContents, req.filename)
               engine.reloadFiles(List(file))
               val pos = Position.offset(file, req.offset)
-              val p = engine.getPosAt(pos)
-              val result = Map("file" -> p.source.toString, "line" -> p.line.toString, "column" -> p.column.toString)
+              val (s, p) = engine.getPosAt(pos)
+              val result = Map("symbol" -> s, "file" -> p.source.toString, "line" -> p.line.toString, "column" -> p.column.toString)
               complete(StatusCodes.OK, result)
             }
           }
@@ -125,9 +148,9 @@ object AkkaServer extends JsonSupport {
         }
       }
 
-    val bindingFuture = Http().bindAndHandle(route, "localhost", 0)
-    val address = bindingFuture.map(_.localAddress)
-      .onComplete(a => println(a.map(_.getPort).get))
+    val bindingFuture = Http().bindAndHandle(route, "localhost", 9317)
+    logger.debug("Akka http server online")
+    //val address = bindingFuture.map(_.localAddress).onComplete(a => println(a.map(_.getPort).get))
 
     //StdIn.readLine() // let it run until user presses return
     //bindingFuture

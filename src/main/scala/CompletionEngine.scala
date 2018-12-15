@@ -35,15 +35,16 @@ class ScalaCompletionEngine(settings: Settings, reporter: StoreReporter)
     val reloadResponse = new Response[Unit]
     askReload(files, reloadResponse)
     getResult(reloadResponse)
-    logger.info(
-      s"unitsOfFile after reloadFile: ${unitOfFile.map(f => f._1.toString).mkString("\n")}"
+    logger.debug(
+      s"unitOfFile after askReload: ${unitOfFile.map(f => f._1.toString).mkString("\n")}"
     )
 
   }
 
   def getErrors: List[(String, String, String, String)] = {
 
-    //logger.info(s"getErrors: ${reporter.infos.mkString("\n")}")
+    logger.trace(s"getErrors: ${reporter.infos.mkString("\n")}")
+
     reporter.infos
       .map(
         info =>
@@ -60,12 +61,12 @@ class ScalaCompletionEngine(settings: Settings, reporter: StoreReporter)
 
   def getTypeAt(pos: Position): String = {
 
-    logger.info(Position.formatMessage(pos, "Getting type at position:", false))
+    logger.debug(Position.formatMessage(pos, "Getting type at position:", false))
     val askTypeAtResponse = new Response[Tree]
     askTypeAt(pos, askTypeAtResponse)
     val result = getResult(askTypeAtResponse) match {
       case Some(tree) =>
-        logger.info(
+        logger.debug(
           s"tree: ${ask(() => tree.toString)}\n raw tree: ${ask(() => showRaw(tree))}"
         )
         ask(() => tree.symbol.tpe.toLongString)
@@ -81,39 +82,40 @@ class ScalaCompletionEngine(settings: Settings, reporter: StoreReporter)
       // }
       case None => "Failed to get type."
     }
-    logger.info(s"getTypeAt: $result")
+    logger.debug(s"getTypeAt: $result")
     result
 
   }
 
-  def getPosAt(pos: Position): Position= {
-    logger.info(
+  def getPosAt(pos: Position): (String, Position)= {
+    logger.debug(
       Position.formatMessage(pos, "Getting position of symbol at :", false)
     )
     val askTypeAtResponse = new Response[Tree]
     askTypeAt(pos, askTypeAtResponse)
     val symbol = getResult(askTypeAtResponse) match {
       case Some(tree) => ask(() => tree.symbol)
-      case None => throw new RuntimeException("failed to get position")
+      case None => throw new RuntimeException("Failed to get position.")
     }
-    logger.info(s"looking for definition of ${symbol.fullNameString}")
+    val symbolFullName = symbol.fullNameString
+    logger.debug(s"Looking for definition of ${symbolFullName}")
     val positions = 
     for (u <- unitOfFile) yield {
-      logger.info(s"looking at file ${u._1.toString}")
+      logger.debug(s"Looking at file ${u._1.toString}")
       val response = new Response[Position]
       askLinkPos(symbol, u._2.source, response)
       val position = getResult(response) match {
         case Some(p) => p
         case _ => NoPosition
       }
-      logger.info(s"${u._1.toString} -> ${position.source.toString}, ${position.line}, ${position.column}")
+      logger.debug(s"${u._1.toString} -> ${position.source.toString}, ${position.line}, ${position.column}")
       position
     }
-    positions.find(_ != NoPosition).getOrElse(NoPosition)
+    (symbolFullName, positions.find(_ != NoPosition).getOrElse(NoPosition))
   }
 
   def getTypeCompletion(pos: Position): List[(String, String)] = {
-    logger.info(
+    logger.debug(
       Position.formatMessage(pos, "Getting type completion at position:", false)
     )
     val response = new Response[List[Member]]
@@ -124,13 +126,13 @@ class ScalaCompletionEngine(settings: Settings, reporter: StoreReporter)
     }
     val res = ask(
       () => result.map(member => (member.sym.nameString, member.infoString)))
-    logger.info(res.mkString("\n"))
+    logger.debug("Result of type completion: " + res.mkString("\n"))
     res
 
   }
 
   def getScopeCompletion(pos: Position): List[(String, String)] = {
-    logger.info(
+    logger.debug(
       Position
         .formatMessage(pos, "Getting scope completion at position:", false)
     )
@@ -142,7 +144,7 @@ class ScalaCompletionEngine(settings: Settings, reporter: StoreReporter)
     }
     val res = ask(
       () => result.map(member => (member.sym.nameString, member.infoString)))
-    logger.info(res.mkString("\n"))
+    logger.debug("Result of scope completion: " + res.mkString("\n"))
     res
 
   }
