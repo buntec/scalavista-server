@@ -70,16 +70,6 @@ class ScalaCompletionEngine(settings: Settings, reporter: StoreReporter)
           s"tree: ${ask(() => tree.toString)}\n raw tree: ${ask(() => showRaw(tree))}"
         )
         ask(() => tree.symbol.tpe.toLongString)
-      // if (tree.isType) {
-      //   ask(() => tree.toString)
-      // } else {
-      //   tree match {
-      //     case ValDef(_, _, tpt, _)       => ask(() => tpt.toString)
-      //     case DefDef(_, _, _, _, tpt, _) => ask(() => tpt.toString)
-      //     case ModuleDef(_, name, _)      => ask(() => name.toString)
-      //     case _                          => "?"
-      //   }
-      // }
       case None => "Failed to get type."
     }
     logger.debug(s"getTypeAt: $result")
