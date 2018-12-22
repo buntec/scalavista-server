@@ -36,9 +36,9 @@ trait JsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val typeCompletionRequestFormat = jsonFormat3(TypeCompletionRequest)
 }
 
-object AkkaServer extends JsonSupport with LazyLogging {
+object ScalavistaServer extends JsonSupport with LazyLogging {
 
-  private val engine = ScalaCompletionEngine()
+  private val engine = ScalavistaEngine()
 
   def main(args: Array[String]) {
 

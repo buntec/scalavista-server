@@ -7,11 +7,11 @@ import scala.tools.nsc.Settings
 import scala.tools.nsc.interactive.Global
 import scala.tools.nsc.reporters.StoreReporter
 
-object ScalaCompletionEngine {
+object ScalavistaEngine {
 
   trait Dummy
 
-  def apply(): ScalaCompletionEngine = {
+  def apply(): ScalavistaEngine = {
 
     val settings = new Settings()
 
@@ -20,13 +20,13 @@ object ScalaCompletionEngine {
 
     val reporter = new StoreReporter()
 
-    new ScalaCompletionEngine(settings, reporter)
+    new ScalavistaEngine(settings, reporter)
 
   }
 
 }
 
-class ScalaCompletionEngine(settings: Settings, reporter: StoreReporter)
+class ScalavistaEngine(settings: Settings, reporter: StoreReporter)
     extends Global(settings, reporter)
     with LazyLogging {
 
