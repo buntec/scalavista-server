@@ -7,6 +7,10 @@ import scala.tools.nsc.Settings
 import scala.tools.nsc.interactive.Global
 import scala.tools.nsc.reporters.StoreReporter
 
+import scala.tools.nsc.doc
+import scala.tools.nsc.doc.base._
+import scala.tools.nsc.doc.base.comment._
+
 object ScalavistaEngine {
 
   trait Dummy
@@ -28,7 +32,18 @@ object ScalavistaEngine {
 
 class ScalavistaEngine(settings: Settings, reporter: StoreReporter)
     extends Global(settings, reporter)
+    with MemberLookupBase
+    with doc.ScaladocGlobalTrait
     with LazyLogging {
+
+  // needed for MemberLookupBase trait - not sure what all of this does
+  override def forScaladoc = true
+  val global: this.type = this
+  def chooseLink(links: List[LinkTo]): LinkTo = links.head
+  def internalLink(sym: Symbol, site: Symbol) = None
+  def toString(link: LinkTo) = link.toString
+  def warnNoLink = false
+  def findExternalLink(sym: Symbol, name: String) = None
 
   def reloadFiles(files: List[SourceFile]): Unit = {
 
@@ -61,7 +76,8 @@ class ScalavistaEngine(settings: Settings, reporter: StoreReporter)
 
   def getTypeAt(pos: Position): String = {
 
-    logger.debug(Position.formatMessage(pos, "Getting type at position:", false))
+    logger.debug(
+      Position.formatMessage(pos, "Getting type at position:", false))
     val askTypeAtResponse = new Response[Tree]
     askTypeAt(pos, askTypeAtResponse)
     val result = getResult(askTypeAtResponse) match {
@@ -77,7 +93,7 @@ class ScalavistaEngine(settings: Settings, reporter: StoreReporter)
 
   }
 
-  def getPosAt(pos: Position): (String, Position)= {
+  def getPosAt(pos: Position): (String, Position) = {
     logger.debug(
       Position.formatMessage(pos, "Getting position of symbol at :", false)
     )
@@ -85,23 +101,29 @@ class ScalavistaEngine(settings: Settings, reporter: StoreReporter)
     askTypeAt(pos, askTypeAtResponse)
     val symbol = getResult(askTypeAtResponse) match {
       case Some(tree) => ask(() => tree.symbol)
-      case None => throw new RuntimeException("Failed to get position.")
+      case None       => throw new RuntimeException("Failed to get position.")
     }
     val symbolFullName = symbol.fullNameString
     logger.debug(s"Looking for definition of ${symbolFullName}")
-    val positions = 
-    for (u <- unitOfFile) yield {
-      logger.debug(s"Looking at file ${u._1.toString}")
-      val response = new Response[Position]
-      askLinkPos(symbol, u._2.source, response)
-      val position = getResult(response) match {
-        case Some(p) => p
-        case _ => NoPosition
-      }
-      logger.debug(s"${u._1.toString} -> ${position.source.toString}, ${position.line}, ${position.column}")
-      position
+    logger.debug(s"sym.sourceFile: ${symbol.sourceFile}")
+    logger.debug(s"sym.sourceFile.path: ${symbol.sourceFile.path}")
+    logger.debug(s"sym.owner: ${symbol.owner.fullNameString}")
+
+    val foundPos = unitOfFile.find(_._1.path == symbol.sourceFile.path) match {
+      case Some((file, compilationUnit)) =>
+        logger.debug(s"Looking at file $file")
+        val response = new Response[Position]
+        askLinkPos(symbol, compilationUnit.source, response)
+        val position = getResult(response) match {
+          case Some(p) => p
+          case _       => NoPosition
+        }
+        logger.debug(
+          s"$file -> ${position.source.toString}, ${position.line}, ${position.column}")
+        position
+      case None => NoPosition
     }
-    (symbolFullName, positions.find(_ != NoPosition).getOrElse(NoPosition))
+    (symbolFullName, if (symbol.pos.isDefined) symbol.pos else foundPos)
   }
 
   def getTypeCompletion(pos: Position): List[(String, String)] = {
@@ -137,6 +159,44 @@ class ScalavistaEngine(settings: Settings, reporter: StoreReporter)
     logger.debug("Result of scope completion: " + res.mkString("\n"))
     res
 
+  }
+
+  def getDocAt(pos: Position): String = {
+    logger.debug(
+      Position.formatMessage(pos, "Getting doc of symbol at :", false)
+    )
+    val askTypeAtResponse = new Response[Tree]
+    askTypeAt(pos, askTypeAtResponse)
+    val symbol = getResult(askTypeAtResponse) match {
+      case Some(tree) => ask(() => tree.symbol)
+      case None       => throw new RuntimeException("Failed to get doc.")
+    }
+    val symbolFullName = symbol.fullNameString
+    logger.debug(s"Looking for doc of ${symbolFullName}")
+    logger.debug(s"sym.owner: ${symbol.owner.fullNameString}")
+    unitOfFile.find(_._1.path == symbol.sourceFile.path) match {
+      case Some((file, compilationUnit)) =>
+        val parseResponse = new Response[Tree]
+        askParsedEntered(compilationUnit.source, true, parseResponse)
+        getResult(parseResponse) match {
+          case Some(_) =>
+            logger.debug(s"Looking at file $file")
+            val docResponse = new Response[(String, String, Position)]
+            askDocComment(symbol,
+                          compilationUnit.source,
+                          symbol.owner,
+                          List((symbol, compilationUnit.source)),
+                          docResponse)
+            val doc = getResult(docResponse) match {
+              case Some((expandable, raw, p)) => raw
+              case _                          => "no doc"
+            }
+            logger.debug(s"$file -> $doc")
+            doc
+          case None => "failed to parse"
+        }
+      case None => "source not found"
+    }
   }
 
   private def getResult[T](res: Response[T]): Option[T] = {

@@ -10,7 +10,7 @@ import spray.json.DefaultJsonProtocol
 
 import com.typesafe.scalalogging.LazyLogging
 
-import ch.qos.logback.classic.{Level,Logger}
+import ch.qos.logback.classic.{Level, Logger}
 import org.slf4j.LoggerFactory
 
 import scala.io.StdIn
@@ -42,23 +42,29 @@ object ScalavistaServer extends JsonSupport with LazyLogging {
 
   def main(args: Array[String]) {
 
-    val cmdlnlog: Int = args.map( {
-        case "-d" => Level.DEBUG_INT
+    val cmdlnlog: Int = args
+      .map({
+        case "-d"  => Level.DEBUG_INT
         case "-dd" => Level.TRACE_INT
-        case "-q" => Level.WARN_INT
+        case "-q"  => Level.WARN_INT
         case "-qq" => Level.ERROR_INT
-        case _ => -1
-      } ).foldLeft(Level.OFF_INT)(scala.math.min(_,_))
+        case _     => -1
+      })
+      .foldLeft(Level.OFF_INT)(scala.math.min(_, _))
 
     if (cmdlnlog == -1) {
       // Unknown log level has been passed in, error out
-      Console.err.println("Unsupported command line argument passed in, terminating.")
+      Console.err.println(
+        "Unsupported command line argument passed in, terminating.")
       sys.exit(0)
     }
     // if nothing has been passed on the command line, use INFO
-    val newloglevel = if (cmdlnlog == Level.OFF_INT) Level.INFO_INT else cmdlnlog
-    LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME).
-      asInstanceOf[Logger].setLevel(Level.toLevel(newloglevel))
+    val newloglevel =
+      if (cmdlnlog == Level.OFF_INT) Level.INFO_INT else cmdlnlog
+    LoggerFactory
+      .getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME)
+      .asInstanceOf[Logger]
+      .setLevel(Level.toLevel(newloglevel))
 
     implicit val system = ActorSystem("my-system")
     implicit val materializer = ActorMaterializer()
@@ -108,8 +114,23 @@ object ScalavistaServer extends JsonSupport with LazyLogging {
               engine.reloadFiles(List(file))
               val pos = Position.offset(file, req.offset)
               val (s, p) = engine.getPosAt(pos)
-              val result = Map("symbol" -> s, "file" -> p.source.toString, "line" -> p.line.toString, "column" -> p.column.toString)
+              val result = Map("symbol" -> s,
+                               "file" -> p.source.toString,
+                               "line" -> p.line.toString,
+                               "column" -> p.column.toString)
               complete(StatusCodes.OK, result)
+            }
+          }
+        }
+      } ~ path("ask-doc-at") {
+        post {
+          decodeRequest {
+            entity(as[TypeAtRequest]) { req =>
+              val file = engine.newSourceFile(req.fileContents, req.filename)
+              engine.reloadFiles(List(file))
+              val pos = Position.offset(file, req.offset)
+              val doc = engine.getDocAt(pos)
+              complete(StatusCodes.OK, doc)
             }
           }
         }
@@ -149,7 +170,7 @@ object ScalavistaServer extends JsonSupport with LazyLogging {
       }
 
     val bindingFuture = Http().bindAndHandle(route, "localhost", 9317)
-    logger.debug("Akka http server online")
+    logger.debug("scalavista server online")
     //val address = bindingFuture.map(_.localAddress).onComplete(a => println(a.map(_.getPort).get))
 
     //StdIn.readLine() // let it run until user presses return
