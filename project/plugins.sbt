@@ -1,1 +1,1 @@
-addSbtPlugin("org.scalavista" %% "sbt-scalavista" % "0.1.0")
+addSbtPlugin("org.scalavista" %% "sbt-scalavista" % "0.1.1-SNAPSHOT")

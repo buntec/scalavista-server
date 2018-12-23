@@ -9,15 +9,18 @@ import scala.tools.nsc.reporters.StoreReporter
 
 import scala.tools.nsc.doc
 import scala.tools.nsc.doc.base._
-import scala.tools.nsc.doc.base.comment._
+//import scala.tools.nsc.doc.base.comment._
 
-object ScalavistaEngine {
+object ScalavistaEngine extends LazyLogging {
 
   trait Dummy
 
-  def apply(): ScalavistaEngine = {
+  def apply(compilerOptions: String): ScalavistaEngine = {
 
     val settings = new Settings()
+    settings.processArgumentString(compilerOptions) match {
+      case (success, unprocessed) => logger.debug(s"processArguments: $success, $unprocessed") 
+    }
 
     settings.embeddedDefaults[Dummy] // why is this needed?
     settings.usejavacp.value = true // what does this do exactly?
