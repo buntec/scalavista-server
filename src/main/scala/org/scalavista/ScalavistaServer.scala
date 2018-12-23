@@ -115,7 +115,7 @@ object ScalavistaServer extends JsonSupport {
               val file = engine.newSourceFile(req.fileContents, req.filename)
               engine.reloadFiles(List(file))
               val pos = Position.offset(file, req.offset)
-              val result = engine.getTypeCompletion(pos)
+              val result = engine.getTypeCompletion(pos).filterNot(_._2.startsWith("[inaccessible]"))
               complete((StatusCodes.OK, result))
             }
           }
