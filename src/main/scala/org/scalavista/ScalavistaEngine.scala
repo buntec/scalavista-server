@@ -1,5 +1,7 @@
 package org.scalavista
 
+import scala.util.{Try => ScalaTry}
+
 import scala.reflect.internal.util.{Position, _}
 import scala.tools.nsc.Settings
 import scala.tools.nsc.interactive.Global
@@ -17,7 +19,8 @@ object ScalavistaEngine {
 
     val settings = new Settings()
     settings.processArgumentString(compilerOptions) match {
-      case (success, unprocessed) => logger.debug(s"processArguments: $success, $unprocessed") 
+      case (success, unprocessed) =>
+        logger.debug(s"processArguments: $success, $unprocessed")
     }
 
     settings.embeddedDefaults[Dummy] // why is this needed?
@@ -31,7 +34,9 @@ object ScalavistaEngine {
 
 }
 
-class ScalavistaEngine(settings: Settings, reporter: StoreReporter, logger: Logger)
+class ScalavistaEngine(settings: Settings,
+                       reporter: StoreReporter,
+                       logger: Logger)
     extends Global(settings, reporter)
     with MemberLookupBase
     with doc.ScaladocGlobalTrait {
@@ -85,7 +90,7 @@ class ScalavistaEngine(settings: Settings, reporter: StoreReporter, logger: Logg
         logger.debug(
           s"tree: ${ask(() => tree.toString)}\n raw tree: ${ask(() => showRaw(tree))}"
         )
-        ask(() => tree.symbol.tpe.toLongString)
+        ScalaTry(ask(() => tree.symbol.tpe.toLongString)).getOrElse("Failed to get type")
       case None => "Failed to get type."
     }
     logger.debug(s"getTypeAt: $result")
@@ -105,24 +110,29 @@ class ScalavistaEngine(settings: Settings, reporter: StoreReporter, logger: Logg
     }
     val symbolFullName = symbol.fullNameString
     logger.debug(s"Looking for definition of ${symbolFullName}")
-    logger.debug(s"sym.sourceFile: ${symbol.sourceFile}")
-    logger.debug(s"sym.sourceFile.path: ${symbol.sourceFile.path}")
+
     logger.debug(s"sym.owner: ${symbol.owner.fullNameString}")
 
-    val foundPos = unitOfFile.find(_._1.path == symbol.sourceFile.path) match {
-      case Some((file, compilationUnit)) =>
-        logger.debug(s"Looking at file $file")
-        val response = new Response[Position]
-        askLinkPos(symbol, compilationUnit.source, response)
-        val position = getResult(response) match {
-          case Some(p) => p
-          case _       => NoPosition
-        }
-        logger.debug(
-          s"$file -> ${position.source.toString}, ${position.line}, ${position.column}")
-        position
-      case None => NoPosition
-    }
+    val symSourceFile = Option(symbol.sourceFile)
+    logger.debug(s"sym.sourceFile: $symSourceFile")
+    logger.debug(s"sym.sourceFile.path: ${symSourceFile.map(_.path)}")
+
+    val foundPos = symSourceFile.map{sf => 
+      unitOfFile.find(_._1.path == sf.path) match {
+        case Some((file, compilationUnit)) =>
+          logger.debug(s"Looking at file $file")
+          val response = new Response[Position]
+          askLinkPos(symbol, compilationUnit.source, response)
+          val position = getResult(response) match {
+            case Some(p) => p
+            case _       => NoPosition
+          }
+          logger.debug(
+            s"$file -> ${position.source.toString}, ${position.line}, ${position.column}")
+          position
+        case None => NoPosition
+      }
+    }.getOrElse(NoPosition)
     (symbolFullName, if (symbol.pos.isDefined) symbol.pos else foundPos)
   }
 
@@ -167,36 +177,39 @@ class ScalavistaEngine(settings: Settings, reporter: StoreReporter, logger: Logg
     )
     val askTypeAtResponse = new Response[Tree]
     askTypeAt(pos, askTypeAtResponse)
-    val symbol = getResult(askTypeAtResponse) match {
+    val symbolOption = Option(getResult(askTypeAtResponse) match {
       case Some(tree) => ask(() => tree.symbol)
       case None       => throw new RuntimeException("Failed to get doc.")
+    })
+    logger.debug(s"Looking for doc of ${symbolOption.map(_.fullNameString)}")
+    logger.debug(s"sym.owner: ${symbolOption.map(_.owner.fullNameString)}")
+
+    val docOption = for (symbol <- symbolOption; sf <- Option(symbol.sourceFile)) yield {
+      unitOfFile.find(_._1.path == sf.path) match {
+        case Some((file, compilationUnit)) =>
+          val parseResponse = new Response[Tree]
+          askParsedEntered(compilationUnit.source, true, parseResponse)
+          getResult(parseResponse) match {
+            case Some(_) =>
+              logger.debug(s"Looking at file $file")
+              val docResponse = new Response[(String, String, Position)]
+              askDocComment(symbol,
+                            compilationUnit.source,
+                            symbol.owner,
+                            List((symbol, compilationUnit.source)),
+                            docResponse)
+              val doc = getResult(docResponse) match {
+                case Some((expandable @ _, raw, p @ _)) => raw
+                case _                                  => "no doc"
+              }
+              logger.debug(s"$file -> $doc")
+              doc
+            case None => "failed to parse"
+          }
+        case None => "source not found"
+      }
     }
-    val symbolFullName = symbol.fullNameString
-    logger.debug(s"Looking for doc of ${symbolFullName}")
-    logger.debug(s"sym.owner: ${symbol.owner.fullNameString}")
-    unitOfFile.find(_._1.path == symbol.sourceFile.path) match {
-      case Some((file, compilationUnit)) =>
-        val parseResponse = new Response[Tree]
-        askParsedEntered(compilationUnit.source, true, parseResponse)
-        getResult(parseResponse) match {
-          case Some(_) =>
-            logger.debug(s"Looking at file $file")
-            val docResponse = new Response[(String, String, Position)]
-            askDocComment(symbol,
-                          compilationUnit.source,
-                          symbol.owner,
-                          List((symbol, compilationUnit.source)),
-                          docResponse)
-            val doc = getResult(docResponse) match {
-              case Some((expandable@_, raw, p@_)) => raw
-              case _                          => "no doc"
-            }
-            logger.debug(s"$file -> $doc")
-            doc
-          case None => "failed to parse"
-        }
-      case None => "source not found"
-    }
+    docOption.getOrElse("source not found")
   }
 
   private def getResult[T](res: Response[T]): Option[T] = {
