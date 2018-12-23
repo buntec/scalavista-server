@@ -6,15 +6,11 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
 
-import com.typesafe.scalalogging.LazyLogging
-import ch.qos.logback.classic.{Level, Logger}
-import org.slf4j.LoggerFactory
-
 import scala.reflect.internal.util.Position
 
 
 
-object ScalavistaServer extends JsonSupport with LazyLogging {
+object ScalavistaServer extends JsonSupport {
 
   def main(args: Array[String]) {
 
@@ -22,12 +18,7 @@ object ScalavistaServer extends JsonSupport with LazyLogging {
 
     val port = conf.port()
 
-    val logLevel = if (conf.debug()) Level.DEBUG_INT else Level.INFO_INT
-
-    LoggerFactory
-      .getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME)
-      .asInstanceOf[Logger]
-      .setLevel(Level.toLevel(logLevel))
+    val logger = if (conf.debug()) Logger(Logger.Debug) else Logger(Logger.Info)
 
     logger.debug(s"port: $port")
 
@@ -43,7 +34,7 @@ object ScalavistaServer extends JsonSupport with LazyLogging {
 
     logger.debug(s"scalacOptions: $scalacOptions")
 
-    val engine = ScalavistaEngine(scalacOptions)
+    val engine = ScalavistaEngine(scalacOptions, logger)
 
     val route =
       path("reload-file") {
@@ -76,14 +67,14 @@ object ScalavistaServer extends JsonSupport with LazyLogging {
               engine.reloadFiles(List(file))
               val pos = Position.offset(file, req.offset)
               val result = engine.getTypeAt(pos)
-              complete(StatusCodes.OK, result)
+              complete((StatusCodes.OK, result))
             }
           }
         }
       } ~ path("ask-pos-at") {
         post {
           decodeRequest {
-            entity(as[TypeAtRequest]) { req =>
+            entity(as[PosAtRequest]) { req =>
               val file = engine.newSourceFile(req.fileContents, req.filename)
               engine.reloadFiles(List(file))
               val pos = Position.offset(file, req.offset)
@@ -92,26 +83,26 @@ object ScalavistaServer extends JsonSupport with LazyLogging {
                                "file" -> p.source.toString,
                                "line" -> p.line.toString,
                                "column" -> p.column.toString)
-              complete(StatusCodes.OK, result)
+              complete((StatusCodes.OK, result))
             }
           }
         }
       } ~ path("ask-doc-at") {
         post {
           decodeRequest {
-            entity(as[TypeAtRequest]) { req =>
+            entity(as[DocAtRequest]) { req =>
               val file = engine.newSourceFile(req.fileContents, req.filename)
               engine.reloadFiles(List(file))
               val pos = Position.offset(file, req.offset)
               val doc = engine.getDocAt(pos)
-              complete(StatusCodes.OK, doc)
+              complete((StatusCodes.OK, doc))
             }
           }
         }
       } ~ path("errors") {
         get {
           val errors = engine.getErrors
-          complete(StatusCodes.OK, errors)
+          complete((StatusCodes.OK, errors))
         }
       } ~ path("alive") {
         get {
@@ -125,19 +116,19 @@ object ScalavistaServer extends JsonSupport with LazyLogging {
               engine.reloadFiles(List(file))
               val pos = Position.offset(file, req.offset)
               val result = engine.getTypeCompletion(pos)
-              complete(StatusCodes.OK, result)
+              complete((StatusCodes.OK, result))
             }
           }
         }
       } ~ path("scope-completion") {
         post {
           decodeRequest {
-            entity(as[TypeCompletionRequest]) { req =>
+            entity(as[ScopeCompletionRequest]) { req =>
               val file = engine.newSourceFile(req.fileContents, req.filename)
               engine.reloadFiles(List(file))
               val pos = Position.offset(file, req.offset)
               val result = engine.getScopeCompletion(pos)
-              complete(StatusCodes.OK, result)
+              complete((StatusCodes.OK, result))
             }
           }
         }

@@ -1,7 +1,5 @@
 package org.scalavista
 
-import com.typesafe.scalalogging.LazyLogging
-
 import scala.reflect.internal.util.{Position, _}
 import scala.tools.nsc.Settings
 import scala.tools.nsc.interactive.Global
@@ -11,11 +9,11 @@ import scala.tools.nsc.doc
 import scala.tools.nsc.doc.base._
 //import scala.tools.nsc.doc.base.comment._
 
-object ScalavistaEngine extends LazyLogging {
+object ScalavistaEngine {
 
   trait Dummy
 
-  def apply(compilerOptions: String): ScalavistaEngine = {
+  def apply(compilerOptions: String, logger: Logger): ScalavistaEngine = {
 
     val settings = new Settings()
     settings.processArgumentString(compilerOptions) match {
@@ -27,17 +25,16 @@ object ScalavistaEngine extends LazyLogging {
 
     val reporter = new StoreReporter()
 
-    new ScalavistaEngine(settings, reporter)
+    new ScalavistaEngine(settings, reporter, logger)
 
   }
 
 }
 
-class ScalavistaEngine(settings: Settings, reporter: StoreReporter)
+class ScalavistaEngine(settings: Settings, reporter: StoreReporter, logger: Logger)
     extends Global(settings, reporter)
     with MemberLookupBase
-    with doc.ScaladocGlobalTrait
-    with LazyLogging {
+    with doc.ScaladocGlobalTrait {
 
   // needed for MemberLookupBase trait - not sure what all of this does
   override def forScaladoc = true
@@ -191,7 +188,7 @@ class ScalavistaEngine(settings: Settings, reporter: StoreReporter)
                           List((symbol, compilationUnit.source)),
                           docResponse)
             val doc = getResult(docResponse) match {
-              case Some((expandable, raw, p)) => raw
+              case Some((expandable@_, raw, p@_)) => raw
               case _                          => "no doc"
             }
             logger.debug(s"$file -> $doc")
