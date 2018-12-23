@@ -8,6 +8,6 @@ import org.rogach.scallop._
 class CliConf(arguments: Seq[String]) extends ScallopConf(arguments) {
   val port = opt[Int](required = true)
   val debug = opt[Boolean]()
-  val scalacopts = opt[String](required = true)
+  val scalacopts = opt[String]()
   verify()
 }
