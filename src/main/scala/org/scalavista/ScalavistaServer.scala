@@ -16,7 +16,12 @@ object ScalavistaServer extends JsonSupport {
 
     val port = conf.port()
 
-    val logger = if (conf.debug()) Logger(Logger.Debug) else Logger(Logger.Info)
+    val logger = if (conf.trace()) 
+        Logger(Logger.Trace) 
+      else if (conf.debug()) 
+        Logger(Logger.Debug) 
+      else 
+        Logger(Logger.Info)
 
     logger.debug(s"port: $port")
 
@@ -129,6 +134,15 @@ object ScalavistaServer extends JsonSupport {
               val pos = Position.offset(file, req.offset)
               val result = engine.getScopeCompletion(pos)
               complete((StatusCodes.OK, result))
+            }
+          }
+        }
+      } ~ path("log-debug") {
+        post {
+          decodeRequest {
+            entity(as[String]) { req =>
+              logger.debug(req)
+              complete(StatusCodes.OK)
             }
           }
         }

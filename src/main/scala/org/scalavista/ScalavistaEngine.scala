@@ -55,7 +55,7 @@ class ScalavistaEngine(settings: Settings,
     val reloadResponse = new Response[Unit]
     askReload(files, reloadResponse)
     getResult(reloadResponse)
-    logger.debug(
+    logger.trace(
       s"unitOfFile after askReload: ${unitOfFile.map(f => f._1.toString).mkString("\n")}"
     )
 
