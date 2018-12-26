@@ -1,10 +1,13 @@
-# scalavista
+# scalavista-server
 
 A minimalistic Scala language-server based on [akka-http](https://github.com/akka/akka-http) and 
 [Scala](https://github.com/scala/scala)'s presentation compiler. 
 
-scalavista was written as a back-end for the [neovim-scalavista](https://github.com/buntec/neovim-scalavista) Neovim plugin.
-It exposes a few simple json endpoints and could be used for any other editor with a sufficiently rich api that supports http. 
+Written as a back-end for the [neovim-scalavista](https://github.com/buntec/neovim-scalavista) 
+Neovim plugin and the [nscode-scalavista](https://github.com/buntec/vscode-scalavista) 
+Visual Studio Code extension.
+
+It exposes a few simple json endpoints and could be used for any other editor with a sufficiently rich api.
 
 ## Building
 
