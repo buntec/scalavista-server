@@ -30,6 +30,8 @@ build
 
 #general
 *.class
+*.jar
+*.pyc
 
 #ensime
 .ensime
