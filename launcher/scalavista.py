@@ -48,7 +48,7 @@ def launch(port, scalac_opts='', debug=False, trace=False, recursive=False):
             sources = [os.path.abspath(source_path) for source_path in glob.glob('*.scala')]
 
     base_dir = os.path.dirname(os.path.realpath(__file__))
-    jar_wildcard = os.path.join(base_dir, 'jars', r'scalavista-*_{}.jar'.format(scala_binary_version))
+    jar_wildcard = os.path.join(base_dir, 'jars', r'scalavista-server*_{}.jar'.format(scala_binary_version))
 
     if not glob.glob(jar_wildcard):
         raise RuntimeError('no suitable scalavista jar found - run install.sh')
