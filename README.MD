@@ -4,7 +4,7 @@ A minimalistic Scala language-server based on [akka-http](https://github.com/akk
 [Scala](https://github.com/scala/scala)'s presentation compiler. 
 
 Written as a back-end for the [neovim-scalavista](https://github.com/buntec/neovim-scalavista) 
-Neovim plugin and the [nscode-scalavista](https://github.com/buntec/vscode-scalavista) 
+Neovim plugin and the [vscode-scalavista](https://github.com/buntec/vscode-scalavista) 
 Visual Studio Code extension.
 
 It exposes a few simple json endpoints and could be used for any other editor with a sufficiently rich api.
