@@ -61,7 +61,7 @@ class ScalavistaEngine(settings: Settings,
 
   }
 
-  def getErrors: List[(String, String, String, String)] = {
+  def getErrors: List[(String, Int, Int, Int, Int, String, String)] = {
 
     logger.trace(s"getErrors: ${reporter.infos.mkString("\n")}")
 
@@ -69,8 +69,11 @@ class ScalavistaEngine(settings: Settings,
       .map(
         info =>
           (
-            info.pos.source.path.toString,
-            info.pos.line.toString,
+            info.pos.source.path,
+            info.pos.line,
+            info.pos.point,
+            info.pos.start,
+            info.pos.end,
             info.msg,
             info.severity.toString
         )
@@ -90,8 +93,11 @@ class ScalavistaEngine(settings: Settings,
         logger.debug(
           s"tree: ${ask(() => tree.toString)}\n raw tree: ${ask(() => showRaw(tree))}"
         )
-        ScalaTry(ask(() => tree.symbol.tpe.toLongString)).getOrElse("Failed to get type")
-      case None => "Failed to get type."
+        tree match { 
+          case Literal(constant) => ScalaTry(ask(() => constant.tpe.toString)).getOrElse("")
+          case _ => ScalaTry(ask(() => tree.symbol.tpe.toLongString)).getOrElse("")
+        }
+      case None => ""
     }
     logger.debug(s"getTypeAt: $result")
     result
@@ -102,6 +108,7 @@ class ScalavistaEngine(settings: Settings,
     logger.debug(
       Position.formatMessage(pos, "Getting position of symbol at :", false)
     )
+    ScalaTry{
     val askTypeAtResponse = new Response[Tree]
     askTypeAt(pos, askTypeAtResponse)
     val symbol = getResult(askTypeAtResponse) match {
@@ -134,6 +141,7 @@ class ScalavistaEngine(settings: Settings,
       }
     }.getOrElse(NoPosition)
     (symbolFullName, if (symbol.pos.isDefined) symbol.pos else foundPos)
+    }.getOrElse(("", NoPosition))
   }
 
   def getTypeCompletion(pos: Position): List[(String, String)] = {
@@ -200,16 +208,16 @@ class ScalavistaEngine(settings: Settings,
                             docResponse)
               val doc = getResult(docResponse) match {
                 case Some((expandable @ _, raw, p @ _)) => raw
-                case _                                  => "no doc"
+                case _                                  => ""
               }
               logger.debug(s"$file -> $doc")
               doc
-            case None => "failed to parse"
+            case None => ""
           }
-        case None => "source not found"
+        case None => ""
       }
     }
-    docOption.getOrElse("source not found")
+    docOption.getOrElse("")
   }
 
   private def getResult[T](res: Response[T]): Option[T] = {

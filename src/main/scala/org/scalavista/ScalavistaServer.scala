@@ -1,5 +1,7 @@
 package org.scalavista
 
+import scala.util.Try
+
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
@@ -82,8 +84,9 @@ object ScalavistaServer extends JsonSupport {
               engine.reloadFiles(List(file))
               val pos = Position.offset(file, req.offset)
               val (s, p) = engine.getPosAt(pos)
-              val result = Map("symbol" -> s,
+              val result = Map("symbol" -> s.toString,
                                "file" -> p.source.toString,
+                               "pos" -> Try(p.point.toString).getOrElse(""),
                                "line" -> p.line.toString,
                                "column" -> p.column.toString)
               complete((StatusCodes.OK, result))
@@ -142,6 +145,13 @@ object ScalavistaServer extends JsonSupport {
           decodeRequest {
             entity(as[String]) { req =>
               logger.debug(req)
+              engine.unitOfFile.foreach(uf => {
+                val file = uf._1
+                val cu = uf._2
+                val content = cu.source.content.mkString
+                logger.debug(s"$file: $content")
+
+              })
               complete(StatusCodes.OK)
             }
           }
