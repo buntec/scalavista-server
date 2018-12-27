@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # assemble server jars
-sbt "+assembly"
+sbt clean "+assembly"
 
 # copy jars to launcher folder
 rm -rfv ./launcher/jars

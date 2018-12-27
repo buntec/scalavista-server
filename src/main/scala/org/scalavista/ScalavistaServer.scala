@@ -69,7 +69,7 @@ object ScalavistaServer extends JsonSupport {
           decodeRequest {
             entity(as[TypeAtRequest]) { req =>
               val file = engine.newSourceFile(req.fileContents, req.filename)
-              engine.reloadFiles(List(file))
+              //engine.reloadFiles(List(file))
               val pos = Position.offset(file, req.offset)
               val result = engine.getTypeAt(pos)
               complete((StatusCodes.OK, result))
@@ -81,7 +81,7 @@ object ScalavistaServer extends JsonSupport {
           decodeRequest {
             entity(as[PosAtRequest]) { req =>
               val file = engine.newSourceFile(req.fileContents, req.filename)
-              engine.reloadFiles(List(file))
+              //engine.reloadFiles(List(file))
               val pos = Position.offset(file, req.offset)
               val (s, p) = engine.getPosAt(pos)
               val result = Map("symbol" -> s.toString,
@@ -98,7 +98,7 @@ object ScalavistaServer extends JsonSupport {
           decodeRequest {
             entity(as[DocAtRequest]) { req =>
               val file = engine.newSourceFile(req.fileContents, req.filename)
-              engine.reloadFiles(List(file))
+              //engine.reloadFiles(List(file))
               val pos = Position.offset(file, req.offset)
               val doc = engine.getDocAt(pos)
               complete((StatusCodes.OK, doc))
@@ -119,7 +119,7 @@ object ScalavistaServer extends JsonSupport {
           decodeRequest {
             entity(as[TypeCompletionRequest]) { req =>
               val file = engine.newSourceFile(req.fileContents, req.filename)
-              engine.reloadFiles(List(file))
+              //engine.reloadFiles(List(file))
               val pos = Position.offset(file, req.offset)
               val result = engine
                 .getTypeCompletion(pos)
@@ -133,7 +133,7 @@ object ScalavistaServer extends JsonSupport {
           decodeRequest {
             entity(as[ScopeCompletionRequest]) { req =>
               val file = engine.newSourceFile(req.fileContents, req.filename)
-              engine.reloadFiles(List(file))
+              //engine.reloadFiles(List(file))
               val pos = Position.offset(file, req.offset)
               val result = engine.getScopeCompletion(pos)
               complete((StatusCodes.OK, result))

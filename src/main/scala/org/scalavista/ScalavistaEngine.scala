@@ -195,10 +195,10 @@ class ScalavistaEngine(settings: Settings,
     val docOption = for (symbol <- symbolOption; sf <- Option(symbol.sourceFile)) yield {
       unitOfFile.find(_._1.path == sf.path) match {
         case Some((file, compilationUnit)) =>
-          val parseResponse = new Response[Tree]
-          askParsedEntered(compilationUnit.source, true, parseResponse)
-          getResult(parseResponse) match {
-            case Some(_) =>
+          // val parseResponse = new Response[Tree]
+          // askParsedEntered(compilationUnit.source, true, parseResponse)
+          //getResult(parseResponse) match {
+          //  case Some(_) =>
               logger.debug(s"Looking at file $file")
               val docResponse = new Response[(String, String, Position)]
               askDocComment(symbol,
@@ -212,8 +212,8 @@ class ScalavistaEngine(settings: Settings,
               }
               logger.debug(s"$file -> $doc")
               doc
-            case None => ""
-          }
+           // case None => ""
+          //}
         case None => ""
       }
     }
