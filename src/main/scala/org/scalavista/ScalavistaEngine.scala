@@ -4,7 +4,7 @@ import scala.util.{Try => ScalaTry}
 
 import scala.reflect.internal.util.{Position, _}
 import scala.tools.nsc.Settings
-import scala.tools.nsc.interactive.Global
+import scala.tools.nsc.interactive.{Global, CommentPreservingTypers, InteractiveAnalyzer}
 import scala.tools.nsc.reporters.StoreReporter
 
 import scala.tools.nsc.doc
@@ -41,6 +41,8 @@ class ScalavistaEngine(settings: Settings,
     with MemberLookupBase
     with doc.ScaladocGlobalTrait {
 
+  outer =>
+
   // needed for MemberLookupBase trait - not sure what all of this does
   override def forScaladoc = true
   val global: this.type = this
@@ -49,6 +51,14 @@ class ScalavistaEngine(settings: Settings,
   def toString(link: LinkTo) = link.toString
   def warnNoLink = false
   def findExternalLink(sym: Symbol, name: String) = None
+
+  // this is needed for scaladoc parsing - now sure what this does either
+  override lazy val analyzer = new {
+    val global: outer.type = outer
+  } with doc.ScaladocAnalyzer with InteractiveAnalyzer with CommentPreservingTypers {
+    override def newTyper(context: Context): InteractiveTyper with ScaladocTyper =
+      new Typer(context) with InteractiveTyper with ScaladocTyper
+  }
 
   def reloadFiles(files: List[SourceFile]): Unit = {
 
@@ -195,25 +205,25 @@ class ScalavistaEngine(settings: Settings,
     val docOption = for (symbol <- symbolOption; sf <- Option(symbol.sourceFile)) yield {
       unitOfFile.find(_._1.path == sf.path) match {
         case Some((file, compilationUnit)) =>
-          // val parseResponse = new Response[Tree]
-          // askParsedEntered(compilationUnit.source, true, parseResponse)
-          //getResult(parseResponse) match {
-          //  case Some(_) =>
-              logger.debug(s"Looking at file $file")
-              val docResponse = new Response[(String, String, Position)]
-              askDocComment(symbol,
-                            compilationUnit.source,
-                            symbol.owner,
-                            List((symbol, compilationUnit.source)),
-                            docResponse)
-              val doc = getResult(docResponse) match {
-                case Some((expandable @ _, raw, p @ _)) => raw
-                case _                                  => ""
-              }
-              logger.debug(s"$file -> $doc")
-              doc
-           // case None => ""
-          //}
+           val parseResponse = new Response[Tree]
+           askParsedEntered(compilationUnit.source, true, parseResponse)
+           getResult(parseResponse) match {
+           case Some(_) =>
+             logger.debug(s"Looking at file $file")
+             val docResponse = new Response[(String, String, Position)]
+             askDocComment(symbol,
+                           compilationUnit.source,
+                           symbol.owner,
+                           List((symbol, compilationUnit.source)),
+                           docResponse)
+             val doc = getResult(docResponse) match {
+               case Some((expandable @_, raw, p @_)) => raw
+               case _                                => ""
+             }
+             logger.debug(s"$file -> $doc")
+             doc
+           case None => ""
+          }
         case None => ""
       }
     }
