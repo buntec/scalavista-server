@@ -13,5 +13,6 @@ cur_dir=`pwd`
 ln -sfv "$cur_dir/launcher/scalavista" /usr/local/bin/scalavista
 
 # make sure python3 requirements are satisfied
+pip3 install colorama --upgrade
 pip3 install requests --upgrade
 pip3 install crayons --upgrade
