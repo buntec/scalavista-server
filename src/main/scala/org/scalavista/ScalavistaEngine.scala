@@ -80,10 +80,10 @@ class ScalavistaEngine(settings: Settings,
         info =>
           (
             info.pos.source.path,
-            info.pos.line,
-            info.pos.column,
-            info.pos.start,
-            info.pos.end,
+            ScalaTry(info.pos.line).getOrElse(0),
+            ScalaTry(info.pos.column).getOrElse(0),
+            ScalaTry(info.pos.start).getOrElse(0),
+            ScalaTry(info.pos.end).getOrElse(0),
             info.msg,
             info.severity.toString
         )
