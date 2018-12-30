@@ -22,9 +22,9 @@ If you want to work on multiple separate projects at the same time,
 you can use the `--port` option to run one server per project. 
 
 For an optimal experience use the [sbt-scalavista](https://github.com/buntec/sbt-scalavista) plugin 
-to generate a `scalavista.json` file for your project. This is a simple json file with the following fields:
+to generate a `scalavista.json` file for your project. This is a simple json file with the following fields (you can generate it by hand in simple cases):
 
-1. `classpath` - your dependencies
+1. `classpath` - a list of dependencies
 1. `scalaBinaryVersion` - 2.11 or 2.12
 1. `sources` - a list of Scala source files
 1. `scalacOptions` - a list of scalac compiler options
