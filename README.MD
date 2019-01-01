@@ -16,8 +16,8 @@ Download and extract the zip archive from the latest release and add the `bin` s
 ## Usage
 #
 Start a scalavista-server instance by executing `scalavista-launcher`
-from the root of your Scala project, ideally with
-a `scalavista.json` present.
+(or `scalavista-launcher.bat`) from the root of your Scala project,
+ideally with a `scalavista.json` present.
 
 If you want to work on multiple separate projects at the same time, 
 you can use the `--port` option to run one server per project. 
