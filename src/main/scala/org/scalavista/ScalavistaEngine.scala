@@ -4,7 +4,11 @@ import scala.util.{Try => ScalaTry}
 
 import scala.reflect.internal.util.{Position, _}
 import scala.tools.nsc.Settings
-import scala.tools.nsc.interactive.{Global, CommentPreservingTypers, InteractiveAnalyzer}
+import scala.tools.nsc.interactive.{
+  Global,
+  CommentPreservingTypers,
+  InteractiveAnalyzer
+}
 import scala.tools.nsc.reporters.StoreReporter
 
 import scala.tools.nsc.doc
@@ -20,7 +24,8 @@ object ScalavistaEngine {
     val settings = new Settings()
     settings.processArgumentString(compilerOptions.mkString(" ")) match {
       case (success, unprocessed) =>
-        logger.debug(s"processArguments: success: $success, unprocessed: $unprocessed")
+        logger.debug(
+          s"processArguments: success: $success, unprocessed: $unprocessed")
     }
 
     settings.embeddedDefaults[Dummy] // why is this needed?
@@ -55,8 +60,10 @@ class ScalavistaEngine(settings: Settings,
   // this is needed for scaladoc parsing - now sure what this does either
   override lazy val analyzer = new {
     val global: outer.type = outer
-  } with doc.ScaladocAnalyzer with InteractiveAnalyzer with CommentPreservingTypers {
-    override def newTyper(context: Context): InteractiveTyper with ScaladocTyper =
+  } with doc.ScaladocAnalyzer with InteractiveAnalyzer
+  with CommentPreservingTypers {
+    override def newTyper(
+        context: Context): InteractiveTyper with ScaladocTyper =
       new Typer(context) with InteractiveTyper with ScaladocTyper
   }
 
@@ -103,9 +110,11 @@ class ScalavistaEngine(settings: Settings,
         logger.debug(
           s"tree: ${ask(() => tree.toString)}\n raw tree: ${ask(() => showRaw(tree))}"
         )
-        tree match { 
-          case Literal(constant) => ScalaTry(ask(() => constant.tpe.toString)).getOrElse("")
-          case _ => ScalaTry(ask(() => tree.symbol.tpe.toLongString)).getOrElse("")
+        tree match {
+          case Literal(constant) =>
+            ScalaTry(ask(() => constant.tpe.toString)).getOrElse("")
+          case _ =>
+            ScalaTry(ask(() => tree.symbol.tpe.toLongString)).getOrElse("")
         }
       case None => ""
     }
@@ -118,39 +127,41 @@ class ScalavistaEngine(settings: Settings,
     logger.debug(
       Position.formatMessage(pos, "Getting position of symbol at :", false)
     )
-    ScalaTry{
-    val askTypeAtResponse = new Response[Tree]
-    askTypeAt(pos, askTypeAtResponse)
-    val symbol = getResult(askTypeAtResponse) match {
-      case Some(tree) => ask(() => tree.symbol)
-      case None       => throw new RuntimeException("Failed to get position.")
-    }
-    val symbolFullName = symbol.fullNameString
-    logger.debug(s"Looking for definition of ${symbolFullName}")
-
-    logger.debug(s"sym.owner: ${symbol.owner.fullNameString}")
-
-    val symSourceFile = Option(symbol.sourceFile)
-    logger.debug(s"sym.sourceFile: $symSourceFile")
-    logger.debug(s"sym.sourceFile.path: ${symSourceFile.map(_.path)}")
-
-    val foundPos = symSourceFile.map{sf => 
-      unitOfFile.find(_._1.path == sf.path) match {
-        case Some((file, compilationUnit)) =>
-          logger.debug(s"Looking at file $file")
-          val response = new Response[Position]
-          askLinkPos(symbol, compilationUnit.source, response)
-          val position = getResult(response) match {
-            case Some(p) => p
-            case _       => NoPosition
-          }
-          logger.debug(
-            s"$file -> ${position.source.toString}, ${position.line}, ${position.column}")
-          position
-        case None => NoPosition
+    ScalaTry {
+      val askTypeAtResponse = new Response[Tree]
+      askTypeAt(pos, askTypeAtResponse)
+      val symbol = getResult(askTypeAtResponse) match {
+        case Some(tree) => ask(() => tree.symbol)
+        case None       => throw new RuntimeException("Failed to get position.")
       }
-    }.getOrElse(NoPosition)
-    (symbolFullName, if (symbol.pos.isDefined) symbol.pos else foundPos)
+      val symbolFullName = symbol.fullNameString
+      logger.debug(s"Looking for definition of ${symbolFullName}")
+
+      logger.debug(s"sym.owner: ${symbol.owner.fullNameString}")
+
+      val symSourceFile = Option(symbol.sourceFile)
+      logger.debug(s"sym.sourceFile: $symSourceFile")
+      logger.debug(s"sym.sourceFile.path: ${symSourceFile.map(_.path)}")
+
+      val foundPos = symSourceFile
+        .map { sf =>
+          unitOfFile.find(_._1.path == sf.path) match {
+            case Some((file, compilationUnit)) =>
+              logger.debug(s"Looking at file $file")
+              val response = new Response[Position]
+              askLinkPos(symbol, compilationUnit.source, response)
+              val position = getResult(response) match {
+                case Some(p) => p
+                case _       => NoPosition
+              }
+              logger.debug(
+                s"$file -> ${position.source.toString}, ${position.line}, ${position.column}")
+              position
+            case None => NoPosition
+          }
+        }
+        .getOrElse(NoPosition)
+      (symbolFullName, if (symbol.pos.isDefined) symbol.pos else foundPos)
     }.getOrElse(("", NoPosition))
   }
 
@@ -202,31 +213,32 @@ class ScalavistaEngine(settings: Settings,
     logger.debug(s"Looking for doc of ${symbolOption.map(_.fullNameString)}")
     logger.debug(s"sym.owner: ${symbolOption.map(_.owner.fullNameString)}")
 
-    val docOption = for (symbol <- symbolOption; sf <- Option(symbol.sourceFile)) yield {
-      unitOfFile.find(_._1.path == sf.path) match {
-        case Some((file, compilationUnit)) =>
-           // val parseResponse = new Response[Tree]
-           // askParsedEntered(compilationUnit.source, true, parseResponse)
-           // getResult(parseResponse) match {
-           // case Some(_) =>
-             logger.debug(s"Looking at file $file")
-             val docResponse = new Response[(String, String, Position)]
-             askDocComment(symbol,
-                           compilationUnit.source,
-                           symbol.owner,
-                           List((symbol, compilationUnit.source)),
-                           docResponse)
-             val doc = getResult(docResponse) match {
-               case Some((expandable @_, raw, p @_)) => raw
-               case _                                => ""
-             }
-             logger.debug(s"$file -> $doc")
-             doc
-           // case None => ""
-           // }
-        case None => ""
+    val docOption =
+      for (symbol <- symbolOption; sf <- Option(symbol.sourceFile)) yield {
+        unitOfFile.find(_._1.path == sf.path) match {
+          case Some((file, compilationUnit)) =>
+            // val parseResponse = new Response[Tree]
+            // askParsedEntered(compilationUnit.source, true, parseResponse)
+            // getResult(parseResponse) match {
+            // case Some(_) =>
+            logger.debug(s"Looking at file $file")
+            val docResponse = new Response[(String, String, Position)]
+            askDocComment(symbol,
+                          compilationUnit.source,
+                          symbol.owner,
+                          List((symbol, compilationUnit.source)),
+                          docResponse)
+            val doc = getResult(docResponse) match {
+              case Some((expandable @ _, raw, p @ _)) => raw
+              case _                                  => ""
+            }
+            logger.debug(s"$file -> $doc")
+            doc
+          // case None => ""
+          // }
+          case None => ""
+        }
       }
-    }
     docOption.getOrElse("")
   }
 

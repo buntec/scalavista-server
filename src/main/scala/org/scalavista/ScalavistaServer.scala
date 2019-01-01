@@ -18,11 +18,12 @@ object ScalavistaServer extends JsonSupport {
 
     val port = conf.port()
 
-    val logger = if (conf.trace()) 
-        Logger(Logger.Trace) 
-      else if (conf.debug()) 
-        Logger(Logger.Debug) 
-      else 
+    val logger =
+      if (conf.trace())
+        Logger(Logger.Trace)
+      else if (conf.debug())
+        Logger(Logger.Debug)
+      else
         Logger(Logger.Info)
 
     logger.debug(s"port: $port")
@@ -33,8 +34,9 @@ object ScalavistaServer extends JsonSupport {
     implicit val executionContext = system.dispatcher
 
     val scalacOptions = conf.scalacopts.toOption match {
-      case Some(opts) => opts.stripPrefix("\"").stripSuffix("\"").split("&#").toSeq
-      case _          => Seq()
+      case Some(opts) =>
+        opts.stripPrefix("\"").stripSuffix("\"").split("&#").toSeq
+      case _ => Seq()
     }
 
     logger.debug(s"scalacOptions: $scalacOptions")
