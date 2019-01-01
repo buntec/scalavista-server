@@ -15,7 +15,7 @@ import scala.util.{Try, Success, Failure}
 import better.files._
 
 
-object Launcher {
+object ScalavistaLauncher {
 
   def main(args: Array[String]) {
 
@@ -64,10 +64,12 @@ object Launcher {
         
       case Failure(_) => 
         
-        val jarFolder = file"./jars"
+        val libFolder = file"./lib"
 
-        val jars = if (jarFolder.isDirectory) file"./jars".list
-          .filter(f => f.extension == Some(".scala")).map(f => f.pathAsString).toList
+        val jars = if (libFolder.isDirectory) 
+          libFolder.list
+            .filter(f => f.extension == Some(".jar"))
+            .map(f => f.pathAsString).toList
           else
             List()
 
@@ -86,6 +88,7 @@ object Launcher {
 
     // spawn the server process
     logger.debug(cmd)
+    logger.info("Launching server...")
     val serverProcess = Process(cmd).run
 
     // we want to load all known Scala source files
@@ -122,13 +125,13 @@ object Launcher {
 
             case Success(res) => 
               logger.debug("Successfully loaded source files.")
-              logger.info("Scalavista server up and running.")
-            case Failure(_) => logger.info("Failed to load source files.")
+              logger.info(s"Scalavista server up and running at $serverUrl.")
+            case Failure(_) => logger.warn("Failed to load source files.")
 
           }
 
         case Failure(_)   => 
-          logger.info("Failed to start server - quitting.")
+          logger.error("Failed to start server - quitting.")
           serverProcess.destroy()
           System.exit(0)
       }
