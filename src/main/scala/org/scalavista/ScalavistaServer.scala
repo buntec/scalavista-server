@@ -33,8 +33,8 @@ object ScalavistaServer extends JsonSupport {
     implicit val executionContext = system.dispatcher
 
     val scalacOptions = conf.scalacopts.toOption match {
-      case Some(opts) => opts.stripPrefix("\"").stripSuffix("\"")
-      case _          => ""
+      case Some(opts) => opts.stripPrefix("\"").stripSuffix("\"").split("&#").toSeq
+      case _          => Seq()
     }
 
     logger.debug(s"scalacOptions: $scalacOptions")

@@ -15,12 +15,12 @@ object ScalavistaEngine {
 
   trait Dummy
 
-  def apply(compilerOptions: String, logger: Logger): ScalavistaEngine = {
+  def apply(compilerOptions: Seq[String], logger: Logger): ScalavistaEngine = {
 
     val settings = new Settings()
-    settings.processArgumentString(compilerOptions) match {
+    settings.processArgumentString(compilerOptions.mkString(" ")) match {
       case (success, unprocessed) =>
-        logger.debug(s"processArguments: $success, $unprocessed")
+        logger.debug(s"processArguments: success: $success, unprocessed: $unprocessed")
     }
 
     settings.embeddedDefaults[Dummy] // why is this needed?

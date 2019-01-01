@@ -29,8 +29,9 @@ lazy val scalavista = (project in file(".")).settings(
     //"com.typesafe.akka" %% "akka-stream-testkit" % "2.5.18" % Test,
     "io.spray" %% "spray-json" % "1.3.5",
     "com.typesafe.akka" %% "akka-http-spray-json" % "10.1.5",
+    "com.github.pathikrit" %% "better-files" % "3.7.0",
     "org.rogach" %% "scallop" % "3.1.5"
   ),
-  mainClass in assembly := Some("org.scalavista.ScalavistaServer"),
+  mainClass in assembly := Some("org.scalavista.Launcher"),
   assemblyJarName in assembly := s"scalavista-server-${version.value}_${scalaBinaryVersion.value}.jar"
 )
