@@ -35,7 +35,7 @@ object ScalavistaServer extends JsonSupport {
 
     val scalacOptions = conf.scalacopts.toOption match {
       case Some(opts) =>
-        opts.stripPrefix("\"").stripSuffix("\"").split("&#").toSeq
+        opts.stripPrefix("w").stripSuffix("w").split("&#").toSeq
       case _ => Seq()
     }
 

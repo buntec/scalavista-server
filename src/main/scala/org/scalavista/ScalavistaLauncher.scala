@@ -48,7 +48,7 @@ object ScalavistaLauncher {
       if (System.getProperty("os.name").startsWith("Windows")) ";" else ":"
 
     def combineScalacOptions(options: Seq[String]): String = {
-      options.mkString("\"", "&#", "\"")
+      options.mkString("w", "&#", "w")
     }
 
     // here we branch on whether or not we have a scalavista.json

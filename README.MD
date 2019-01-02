@@ -11,13 +11,17 @@ If anyone wants to contribute similar plugins for Atom or Sublime Text, that wou
 
 ## Install
 
-Download and extract the zip archive from the latest release and add the `bin` subfolder to your `PATH`.
+Download the fat jar for your desired Scala version from the latest [release](https://github.com/buntec/scalavista-server/releases)
 
 ## Usage
-#
-Start a scalavista-server instance by executing `scalavista-launcher`
-(or `scalavista-launcher.bat`) from the root of your Scala project,
-ideally with a `scalavista.json` present.
+
+Start a scalavista-server instance by executing 
+
+```
+java -jar /path/to/scalavista-server-jar [options]
+```
+
+(It may be more convenient to put this into a launcher script.)
 
 If you want to work on multiple separate projects at the same time, 
 you can use the `--port` option to run one server per project. 
