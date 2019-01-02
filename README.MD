@@ -7,28 +7,31 @@ Written as a back-end for the [neovim-scalavista](https://github.com/buntec/neov
 Neovim plugin and the [vscode-scalavista](https://github.com/buntec/vscode-scalavista) 
 Visual Studio Code extension.
 
-If anyone wants to contribute similar plugins for Atom or Sublime Text, that would be great!
+(If anyone wants to contribute similar plugins for Atom or Sublime Text, that would be great!)
 
 ## Install
 
-Download the fat jar for your desired Scala version from the latest [release](https://github.com/buntec/scalavista-server/releases)
+Download the fat jar for your desired Scala version from the
+latest [release](https://github.com/buntec/scalavista-server/releases)
 
 ## Usage
 
-Start a scalavista-server instance by executing 
+Start a scalavista-server instance from the root of your project by executing 
 
 ```
 java -jar /path/to/scalavista-server-jar [options]
 ```
 
-(It may be more convenient to put this into a launcher script.)
+(It may be more convenient to put this into a simple launcher script.)
+
+Use `--help` to see a list of options.
 
 If you want to work on multiple separate projects at the same time, 
-you can use the `--port` option to run one server per project. 
+you can use the `--port` option to run one server instance per project. 
 
 For an optimal experience use the
-[sbt-scalavista](https://github.com/buntec/sbt-scalavista) plugin
-to generate a `scalavista.json` file for your project.
+[sbt-scalavista](https://github.com/buntec/sbt-scalavista) 
+plugin to generate a `scalavista.json` file for your project.
 This is a simple json file with the following fields
 (you can write it by hand in simple cases):
 
@@ -40,11 +43,10 @@ This is a simple json file with the following fields
 You can use scalavista-server without a `scalavista.json` with the
 effect that external dependencies are not recognized and marked
 as errors in your code. The exception are manually managed
-dependencies in `./lib` which are automatically appended to the
+dependencies (jars) in `./lib`, which are automatically appended to the
 classpath. All Scala source files in the root of the project or
 any of its subdirectories are picked up.
 
-Use `--help` to see a list of options.
 
 ## Disclaimer 
 
