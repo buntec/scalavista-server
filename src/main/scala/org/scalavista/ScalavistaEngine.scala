@@ -73,7 +73,7 @@ class ScalavistaEngine(settings: Settings,
     askReload(files, reloadResponse)
     getResult(reloadResponse)
     logger.trace(
-      s"unitOfFile after askReload: ${unitOfFile.map(f => f._1.toString).mkString("\n")}"
+      s"unitOfFile after askReload: ${unitOfFile.map(f => f._1.path.toString).mkString("\n")}"
     )
 
   }

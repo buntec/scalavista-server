@@ -8,7 +8,8 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
 
-import scala.reflect.internal.util.Position
+import scala.reflect.internal.util.{Position, BatchSourceFile}
+//import scala.reflect.io.AbstractFile
 
 object ScalavistaServer extends JsonSupport {
 
@@ -30,7 +31,6 @@ object ScalavistaServer extends JsonSupport {
 
     implicit val system = ActorSystem("scalavista-actor-system")
     implicit val materializer = ActorMaterializer()
-    // needed for the future flatMap/onComplete in the end
     implicit val executionContext = system.dispatcher
 
     val scalacOptions = conf.scalacopts.toOption match {
@@ -43,13 +43,28 @@ object ScalavistaServer extends JsonSupport {
 
     val engine = ScalavistaEngine(scalacOptions, logger)
 
+    val isWindows = System.getProperty("os.name").startsWith("Windows")
+
+    def newSourceFile(code: String, filepath: String): BatchSourceFile = {
+      //val file = AbstractFile.getFile(filepath)
+      //new BatchSourceFile(file, code.toArray)
+      val normalizedFilepath = if (isWindows) filepath.toLowerCase else filepath
+      engine.newSourceFile(code, normalizedFilepath)
+    }
+
+    def reloadFiles(filePaths: List[String], contents: List[String]): Unit = {
+      val sourceFiles = (filePaths zip contents).map {
+        case (path, content) => newSourceFile(content, path)
+      }
+      engine.reloadFiles(sourceFiles)
+    }
+
     val route =
       path("reload-file") {
         post {
           decodeRequest {
             entity(as[ReloadFileRequest]) { req =>
-              val file = engine.newSourceFile(req.fileContents, req.filename)
-              engine.reloadFiles(List(file))
+              reloadFiles(List(req.filename), List(req.fileContents))
               complete(StatusCodes.OK)
             }
           }
@@ -58,10 +73,7 @@ object ScalavistaServer extends JsonSupport {
         post {
           decodeRequest {
             entity(as[ReloadFilesRequest]) { req =>
-              val files = (req.filenames zip req.fileContents).map {
-                case (fn, con) => engine.newSourceFile(con, fn)
-              }
-              engine.reloadFiles(files)
+              reloadFiles(req.filenames, req.fileContents)
               complete(StatusCodes.OK)
             }
           }
@@ -70,8 +82,7 @@ object ScalavistaServer extends JsonSupport {
         post {
           decodeRequest {
             entity(as[TypeAtRequest]) { req =>
-              val file = engine.newSourceFile(req.fileContents, req.filename)
-              //engine.reloadFiles(List(file))
+              val file = newSourceFile(req.fileContents, req.filename)
               val pos = Position.offset(file, req.offset)
               val result = engine.getTypeAt(pos)
               complete((StatusCodes.OK, result))
@@ -82,12 +93,11 @@ object ScalavistaServer extends JsonSupport {
         post {
           decodeRequest {
             entity(as[PosAtRequest]) { req =>
-              val file = engine.newSourceFile(req.fileContents, req.filename)
-              //engine.reloadFiles(List(file))
+              val file = newSourceFile(req.fileContents, req.filename)
               val pos = Position.offset(file, req.offset)
               val (s, p) = engine.getPosAt(pos)
               val result = Map("symbol" -> s.toString,
-                               "file" -> p.source.toString,
+                               "file" -> p.source.file.path.toString,
                                "pos" -> Try(p.point.toString).getOrElse(""),
                                "line" -> p.line.toString,
                                "column" -> p.column.toString)
@@ -99,8 +109,7 @@ object ScalavistaServer extends JsonSupport {
         post {
           decodeRequest {
             entity(as[DocAtRequest]) { req =>
-              val file = engine.newSourceFile(req.fileContents, req.filename)
-              //engine.reloadFiles(List(file))
+              val file = newSourceFile(req.fileContents, req.filename)
               val pos = Position.offset(file, req.offset)
               val doc = engine.getDocAt(pos)
               complete((StatusCodes.OK, doc))
@@ -120,8 +129,7 @@ object ScalavistaServer extends JsonSupport {
         post {
           decodeRequest {
             entity(as[TypeCompletionRequest]) { req =>
-              val file = engine.newSourceFile(req.fileContents, req.filename)
-              //engine.reloadFiles(List(file))
+              val file = newSourceFile(req.fileContents, req.filename)
               val pos = Position.offset(file, req.offset)
               val result = engine
                 .getTypeCompletion(pos)
@@ -134,8 +142,7 @@ object ScalavistaServer extends JsonSupport {
         post {
           decodeRequest {
             entity(as[ScopeCompletionRequest]) { req =>
-              val file = engine.newSourceFile(req.fileContents, req.filename)
-              //engine.reloadFiles(List(file))
+              val file = newSourceFile(req.fileContents, req.filename)
               val pos = Position.offset(file, req.offset)
               val result = engine.getScopeCompletion(pos)
               complete((StatusCodes.OK, result))
