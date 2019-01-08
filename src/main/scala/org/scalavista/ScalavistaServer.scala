@@ -84,7 +84,7 @@ object ScalavistaServer extends JsonSupport {
             entity(as[TypeAtRequest]) { req =>
               val file = newSourceFile(req.fileContents, req.filename)
               val pos = Position.offset(file, req.offset)
-              val result = engine.getTypeAt(pos)
+              val result = Try(engine.getTypeAt(pos)).getOrElse("")
               complete((StatusCodes.OK, result))
             }
           }
@@ -111,7 +111,7 @@ object ScalavistaServer extends JsonSupport {
             entity(as[DocAtRequest]) { req =>
               val file = newSourceFile(req.fileContents, req.filename)
               val pos = Position.offset(file, req.offset)
-              val doc = engine.getDocAt(pos)
+              val doc = Try(engine.getDocAt(pos)).getOrElse("")
               complete((StatusCodes.OK, doc))
             }
           }

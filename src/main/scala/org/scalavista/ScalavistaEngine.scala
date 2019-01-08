@@ -70,6 +70,7 @@ class ScalavistaEngine(settings: Settings,
   def reloadFiles(files: List[SourceFile]): Unit = {
 
     val reloadResponse = new Response[Unit]
+    logger.debug(s"reloading files: ${files.mkString("\n")}")
     askReload(files, reloadResponse)
     getResult(reloadResponse)
     logger.trace(

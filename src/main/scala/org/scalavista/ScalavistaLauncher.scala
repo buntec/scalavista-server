@@ -99,7 +99,7 @@ object ScalavistaLauncher {
         json.fields("sources").convertTo[List[String]]
       case Failure(_) =>
         file".".listRecursively
-          .filter(_.extension == Some(".scala"))
+          .filter(f => f.extension == Some(".scala") || f.extension == Some(".java"))
           .map(_.pathAsString)
           .toList
     }
