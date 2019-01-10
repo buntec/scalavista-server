@@ -11,15 +11,15 @@ Visual Studio Code extension.
 
 ## Install
 
-Download the fat jar for your desired Scala version from the
-latest [release](https://github.com/buntec/scalavista-server/releases)
+Download the fat jar for your desired Scala version (only 2.11 and 2.12 are currently supported)
+from the latest [release](https://github.com/buntec/scalavista-server/releases).
 
 ## Usage
 
 Start a scalavista-server instance from the root of your project by executing 
 
 ```
-java -jar /path/to/scalavista-server-jar [options]
+java -jar /path/to/scalavista-server-*.jar [options]
 ```
 
 (It may be more convenient to put this into a simple launcher script.)
@@ -32,20 +32,17 @@ you can use the `--port` option to run one server instance per project.
 For an optimal experience use the
 [sbt-scalavista](https://github.com/buntec/sbt-scalavista) 
 plugin to generate a `scalavista.json` file for your project.
-This is a simple json file with the following fields
-(you can write it by hand in simple cases):
+This is a plain json file with the following fields:
 
-1. `classpath` - a list of dependencies
-1. `scalaBinaryVersion` - 2.11 or 2.12
-1. `sources` - a list of Scala source files
-1. `scalacOptions` - a list of scalac compiler options
+1. `classpath` - a list of dependencies;
+1. `scalaBinaryVersion` - "2.11" or "2.12";
+1. `sources` - a list of Scala or Java source files;
+1. `scalacOptions` - a list of scalac compiler options.
 
-You can use scalavista-server without a `scalavista.json` with the
-effect that external dependencies are not recognized and marked
-as errors in your code. The exception are manually managed
-dependencies (jars) in `./lib`, which are automatically appended to the
-classpath. All Scala source files in the root of the project or
-any of its subdirectories are picked up.
+In the absence of a `scalavista.json` file, scalavista-server will pick up any
+*.scala or *.java files in the directory where the server was launched or
+any of its subdirectories. External dependencies are only picked up if they
+reside in a `lib` subfolder of where the server was launched.
 
 
 ## Disclaimer 
