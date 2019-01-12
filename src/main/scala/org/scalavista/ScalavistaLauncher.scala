@@ -61,9 +61,13 @@ object ScalavistaLauncher {
 
         val scalacOptions = combineScalacOptions(
           json.fields("scalacOptions").convertTo[List[String]])
+
+        logger.debug("succesfully loaded scalavista.json")
+
         s"$java -cp $classpath $className $debug $trace --port $port --scalacopts $scalacOptions"
 
       case Failure(_) =>
+        logger.info("Could not find scalavista.json - proceeding without.")
         val libFolder = file"./lib"
 
         val jars =

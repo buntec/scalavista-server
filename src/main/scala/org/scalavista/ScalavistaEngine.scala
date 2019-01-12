@@ -214,8 +214,16 @@ class ScalavistaEngine(settings: Settings,
     logger.debug(s"Looking for doc of ${symbolOption.map(_.fullNameString)}")
     logger.debug(s"sym.owner: ${symbolOption.map(_.owner.fullNameString)}")
 
+    logger.debug(s"sym.owner.isFreeType: ${symbolOption.map(_.owner.isFreeType)}")
+
+    logger.debug(s"sym.owner.isClass: ${symbolOption.map(_.owner.isClass)}")
+
+
     val docOption =
       for (symbol <- symbolOption; sf <- Option(symbol.sourceFile)) yield {
+        if (!symbol.owner.isClass && !symbol.owner.isFreeType) {
+          ""
+        } else {
         unitOfFile.find(_._1.path == sf.path) match {
           case Some((file, compilationUnit)) =>
             // val parseResponse = new Response[Tree]
@@ -239,6 +247,7 @@ class ScalavistaEngine(settings: Settings,
           // }
           case None => ""
         }
+      }
       }
     docOption.getOrElse("")
   }
