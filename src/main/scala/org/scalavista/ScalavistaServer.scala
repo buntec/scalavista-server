@@ -125,6 +125,10 @@ object ScalavistaServer extends JsonSupport {
         get {
           complete(StatusCodes.OK)
         }
+      } ~ path("version") {
+        get {
+          complete((StatusCodes.OK, Version.toString))
+        }
       } ~ path("type-completion") {
         post {
           decodeRequest {
