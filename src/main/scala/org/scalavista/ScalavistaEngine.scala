@@ -81,6 +81,9 @@ class ScalavistaEngine(settings: Settings,
 
   def getErrors: List[(String, Int, Int, Int, Int, String, String)] = {
 
+    if (!reporter.infos.isEmpty)
+      logger.debug(s"getErrors: ${reporter.infos.size} errors/warnings")
+
     logger.trace(s"getErrors: ${reporter.infos.mkString("\n")}")
 
     reporter.infos
@@ -178,7 +181,8 @@ class ScalavistaEngine(settings: Settings,
     }
     val res = ask(
       () => result.map(member => (member.sym.nameString, member.infoString)))
-    logger.debug("Result of type completion: " + res.mkString("\n"))
+    logger.debug("Number of type completion items: " + res.length)
+    logger.trace("Result of type completion: " + res.mkString("\n"))
     res
 
   }
@@ -196,7 +200,8 @@ class ScalavistaEngine(settings: Settings,
     }
     val res = ask(
       () => result.map(member => (member.sym.nameString, member.infoString)))
-    logger.debug("Result of scope completion: " + res.mkString("\n"))
+    logger.debug("Number of scope completion items: " + res.length)
+    logger.trace("Result of scope completion: " + res.mkString("\n"))
     res
 
   }
@@ -257,8 +262,8 @@ class ScalavistaEngine(settings: Settings,
     res.get(TIMEOUT.toLong) match {
       case Some(Left(t)) => Some(t)
       case Some(Right(ex)) =>
-        ex.printStackTrace()
-        println(ex)
+        //ex.printStackTrace()
+        logger.debug(s"exception caught in getResult: ${ex.toString}")
         None
       case None =>
         None

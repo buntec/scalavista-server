@@ -13,6 +13,8 @@ import scala.reflect.internal.util.{Position, BatchSourceFile}
 
 object ScalavistaServer extends JsonSupport {
 
+  private val driveLetter = raw"^[a-zA-Z]:\\".r
+
   def main(args: Array[String]) {
 
     val conf = new CliConf(args)
@@ -48,7 +50,14 @@ object ScalavistaServer extends JsonSupport {
     def newSourceFile(code: String, filepath: String): BatchSourceFile = {
       //val file = AbstractFile.getFile(filepath)
       //new BatchSourceFile(file, code.toArray)
-      val normalizedFilepath = if (isWindows) filepath.toLowerCase else filepath
+      val normalizedFilepath = if (isWindows) {
+        driveLetter.findFirstIn(filepath) match {
+            case Some(_) => filepath.head.toUpper + filepath.tail
+            case None => filepath
+          }
+        } else {
+          filepath
+        }
       engine.newSourceFile(code, normalizedFilepath)
     }
 
