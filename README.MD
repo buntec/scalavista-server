@@ -1,22 +1,24 @@
 # scalavista-server
 
-A minimalistic Scala language-server based on [akka-http](https://github.com/akka/akka-http) and 
-[Scala](https://github.com/scala/scala)'s presentation compiler. 
+A minimalistic Scala language server based on [akka-http](https://github.com/akka/akka-http) and
+[Scala](https://github.com/scala/scala)'s presentation compiler.
 
-Written as a back-end for the [neovim-scalavista](https://github.com/buntec/neovim-scalavista) 
-Neovim plugin and the [vscode-scalavista](https://github.com/buntec/vscode-scalavista) 
+Written as a back-end for the [neovim-scalavista](https://github.com/buntec/neovim-scalavista)
+Neovim plugin and the [vscode-scalavista](https://github.com/buntec/vscode-scalavista)
 Visual Studio Code extension.
 
-(If anyone wants to contribute similar plugins for Atom or Sublime Text, that would be great!)
+(If anyone wants to contribute similar plugins for e.g. Atom or Sublime Text, that would be great!)
+
+See `ScalavistaServer.scala` for all API endpoints.
 
 ## Install
 
-Download the fat jar for your desired Scala version (only 2.11 and 2.12 are currently supported)
-from the latest [release](https://github.com/buntec/scalavista-server/releases).
+Download the fat jar for your desired Scala version (2.11.x and 2.12.x are currently supported)
+from the [release page](https://github.com/buntec/scalavista-server/releases).
 
 ## Usage
 
-Start a scalavista-server instance from the root of your project by executing 
+Start a server instance from the root of your project by executing
 
 ```
 java -jar /path/to/scalavista-server-*.jar [options]
@@ -26,11 +28,11 @@ java -jar /path/to/scalavista-server-*.jar [options]
 
 Use `--help` to see a list of options.
 
-If you want to work on multiple separate projects at the same time, 
-you can use the `--port` option to run one server instance per project. 
+If you want to work on multiple separate projects at the same time,
+you can use the `--port` option to run one server instance per project.
 
 For an optimal experience use the
-[sbt-scalavista](https://github.com/buntec/sbt-scalavista) 
+[sbt-scalavista](https://github.com/buntec/sbt-scalavista)
 plugin to generate a `scalavista.json` file for your project.
 This is a plain json file with the following fields:
 
@@ -41,10 +43,10 @@ This is a plain json file with the following fields:
 
 In the absence of a `scalavista.json` file, scalavista-server will pick up any
 *.scala or *.java files in the directory where the server was launched or
-any of its subdirectories. External dependencies are only picked up if they
-reside in a `lib` subfolder of where the server was launched.
+any of its subdirectories (recursively). External dependencies are only picked up if
+their jars reside in a `lib` subfolder of where the server was launched.
 
 
-## Disclaimer 
+## Disclaimer
 
-This project is in alpha stage and should be considered unstable. 
+This is work in progress.
