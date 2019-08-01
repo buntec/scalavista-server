@@ -13,7 +13,7 @@ See `ScalavistaServer.scala` for all API endpoints.
 
 ## Install
 
-Download the fat jar for your desired Scala version (2.11.x and 2.12.x are currently supported)
+Download the fat jar for your desired Scala version
 from the [release page](https://github.com/buntec/scalavista-server/releases).
 
 ## Usage
@@ -37,7 +37,7 @@ plugin to generate a `scalavista.json` file for your project.
 This is a plain json file with the following fields:
 
 1. `classpath` - a list of dependencies;
-1. `scalaBinaryVersion` - "2.11" or "2.12";
+1. `scalaBinaryVersion` - "2.11", "2.12" or "2.13";
 1. `sources` - a list of Scala or Java source files;
 1. `scalacOptions` - a list of scalac compiler options.
 
@@ -49,4 +49,4 @@ their jars reside in a `lib` subfolder of where the server was launched.
 
 ## Disclaimer
 
-This is work in progress.
+This is work in progress. Contributions and bug reports are most welcome!
