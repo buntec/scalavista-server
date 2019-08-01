@@ -16,10 +16,10 @@ import better.files._
 
 object ScalavistaLauncher {
 
-  def main(args: Array[String]) {
+  def main(args: Array[String]): Unit = {
 
     // parse cli options
-    val conf = new LauncherCliConf(args)
+    val conf = new LauncherCliConf(args.toIndexedSeq)
     val port = conf.port()
     val serverUrl = s"http://localhost:$port"
     val debug = if (conf.debug()) "--debug" else ""

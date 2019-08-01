@@ -15,9 +15,9 @@ object ScalavistaServer extends JsonSupport {
 
   private val driveLetter = raw"^[a-zA-Z]:\\".r
 
-  def main(args: Array[String]) {
+  def main(args: Array[String]): Unit = {
 
-    val conf = new CliConf(args)
+    val conf = new CliConf(args.toIndexedSeq)
 
     val port = conf.port()
 
@@ -52,7 +52,7 @@ object ScalavistaServer extends JsonSupport {
       //new BatchSourceFile(file, code.toArray)
       val normalizedFilepath = if (isWindows) {
         driveLetter.findFirstIn(filepath) match {
-            case Some(_) => filepath.head.toUpper + filepath.tail
+            case Some(_) => s"${filepath.head.toUpper}${filepath.tail}"
             case None => filepath
           }
         } else {

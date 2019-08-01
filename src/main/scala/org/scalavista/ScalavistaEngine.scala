@@ -49,7 +49,7 @@ class ScalavistaEngine(settings: Settings,
   outer =>
 
   // needed for MemberLookupBase trait - not sure what all of this does
-  override def forScaladoc = true
+  // override def forScaladoc = true
   val global: this.type = this
   def chooseLink(links: List[LinkTo]): LinkTo = links.head
   def internalLink(sym: Symbol, site: Symbol) = None
