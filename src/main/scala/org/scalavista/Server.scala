@@ -11,15 +11,16 @@ import akka.stream.ActorMaterializer
 import scala.reflect.internal.util.{Position, BatchSourceFile}
 //import scala.reflect.io.AbstractFile
 
-object ScalavistaServer extends JsonSupport {
+object Server extends JsonSupport {
 
   private val driveLetter = raw"^[a-zA-Z]:\\".r
 
   def main(args: Array[String]): Unit = {
 
-    val conf = new CliConf(args.toIndexedSeq)
+    val conf = new ServerCliConf(args.toIndexedSeq)
 
     val port = conf.port()
+    val uuid = conf.uuid()
 
     val logger =
       if (conf.trace())
@@ -43,7 +44,7 @@ object ScalavistaServer extends JsonSupport {
 
     logger.debug(s"scalacOptions: $scalacOptions")
 
-    val engine = ScalavistaEngine(scalacOptions, logger)
+    val engine = Engine(scalacOptions, logger)
 
     val isWindows = System.getProperty("os.name").startsWith("Windows")
 
@@ -132,7 +133,7 @@ object ScalavistaServer extends JsonSupport {
         }
       } ~ path("alive") {
         get {
-          complete(StatusCodes.OK)
+          complete((StatusCodes.OK, uuid))
         }
       } ~ path("version") {
         get {

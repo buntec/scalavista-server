@@ -8,6 +8,8 @@ class LauncherCliConf(arguments: Seq[String]) extends ScallopConf(arguments) {
   version(s"scalavista-server ${Version.toString}")
   val port = opt[Int](default = Some(9317),
                       descr = "Which server port to use - defaults to 9317")
+  val uuid = opt[String](default = Some("foo"),
+                         descr = "Unique id to infer the owning process")
   val debug = opt[Boolean](descr = "Switch on debug mode")
   val trace = opt[Boolean](descr = "Switch on trace mode")
   val pedantic =

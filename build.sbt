@@ -1,7 +1,7 @@
 lazy val scalavista = (project in file("."))
     .settings(
       name := "scalavista-server",
-      version := "0.1.11",
+      version := "0.1.12",
       scalaVersion := "2.13.0",
       crossScalaVersions := Seq("2.11.12", "2.12.8", "2.13.0"),
       fork := true,
@@ -30,6 +30,6 @@ lazy val scalavista = (project in file("."))
         "com.github.pathikrit" %% "better-files" % "3.8.0",
         "org.rogach" %% "scallop" % "3.3.1"
       ),
-      mainClass in assembly := Some("org.scalavista.ScalavistaLauncher"),
+      mainClass in assembly := Some("org.scalavista.Launcher"),
       assemblyJarName in assembly := s"${name.value}-${version.value}_${scalaBinaryVersion.value}.jar"
     )

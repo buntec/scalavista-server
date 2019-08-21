@@ -15,11 +15,11 @@ import scala.tools.nsc.doc
 import scala.tools.nsc.doc.base._
 //import scala.tools.nsc.doc.base.comment._
 
-object ScalavistaEngine {
+object Engine {
 
   trait Dummy
 
-  def apply(compilerOptions: Seq[String], logger: Logger): ScalavistaEngine = {
+  def apply(compilerOptions: Seq[String], logger: Logger): Engine = {
 
     val settings = new Settings()
     settings.processArgumentString(compilerOptions.mkString(" ")) match {
@@ -33,13 +33,13 @@ object ScalavistaEngine {
 
     val reporter = new StoreReporter()
 
-    new ScalavistaEngine(settings, reporter, logger)
+    new Engine(settings, reporter, logger)
 
   }
 
 }
 
-class ScalavistaEngine(settings: Settings,
+class Engine(settings: Settings,
                        reporter: StoreReporter,
                        logger: Logger)
     extends Global(settings, reporter)
