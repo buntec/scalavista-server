@@ -12,8 +12,11 @@ import spray.json._
 import DefaultJsonProtocol._
 
 import scala.util.{Try, Success, Failure}
+import java.io.{File => JavaFile}
 
 import better.files._
+import coursier._
+import coursier.parse.DependencyParser
 
 object Launcher {
 
@@ -36,62 +39,65 @@ object Launcher {
       else
         Logger(Logger.Info)
 
-    // read scalavista.json if present
-    val jsonTry = Try {
-      val file = file"scalavista.json"
-      JsonParser(file.contentAsString).asJsObject
-    }
 
     val preClasspath = System.getProperty("java.class.path")
     val pathSeparator = System.getProperty("file.separator")
     val java = System.getProperty("java.home") + pathSeparator + "bin" + pathSeparator + "java"
     val className = "org.scalavista.Server"
-    val classPathSeparator =
-      if (System.getProperty("os.name").startsWith("Windows")) ";" else ":"
+    val classPathSeparator = JavaFile.pathSeparator //if (System.getProperty("os.name").startsWith("Windows")) ";" else ":"
+    val scalaVersion = scala.util.Properties.versionNumberString
 
     def combineScalacOptions(options: Seq[String]): String = {
       options.mkString("w", "&#", "w")
     }
 
-    // here we branch on whether or not we have a scalavista.json
-    val cmd = jsonTry match {
+    lazy val defaultScalacOptions = {
+          if (pedantic)
+            CompilerOptions.pedantic
+          else
+            CompilerOptions.default
+    }
 
-      case Success(json) =>
-        val classpath = (preClasspath :: json
-          .fields("classpath")
-          .convertTo[List[String]]).mkString(classPathSeparator)
-
-        val scalacOptions = combineScalacOptions(
-          json.fields("scalacOptions").convertTo[List[String]])
-
-        logger.debug("succesfully loaded scalavista.json")
-
-        s"$java -cp $classpath $className $debug $trace --uuid $uuid --port $port --scalacopts $scalacOptions"
-
-      case Failure(_) =>
-        logger.info("Could not find scalavista.json - proceeding without.")
+    // manual dependencies
+    lazy val libJars = {
         val libFolder = file"./lib"
-
-        val jars =
-          if (libFolder.isDirectory)
+        if (libFolder.isDirectory)
             libFolder.list
               .filter(f => f.extension == Some(".jar"))
               .map(f => f.pathAsString)
               .toList
           else
             List()
+    }
 
-        val classpath = (preClasspath :: jars).mkString(classPathSeparator)
+    // try to read scalavista.json if present
+    val jsonTry = Try {
+      val file = file"scalavista.json"
+      JsonParser(file.contentAsString).asJsObject
+    }
 
+    // here we construct the command to start the server subprocess; we branch on whether or not we have a scalavista.json
+    val cmd = jsonTry match {
+
+      case Success(json) =>
+        logger.debug("Succesfully loaded scalavista.json")
+        val userClasspath = json.fields.get("classpath").map(_.convertTo[List[String]]).getOrElse(Nil)
         val scalacOptions = combineScalacOptions(
-          if (pedantic)
-            CompilerOptions.pedantic
-          else
-            CompilerOptions.default
-        )
-
+          json.fields.get("scalacOptions").map(_.convertTo[List[String]]).getOrElse(defaultScalacOptions))
+        val dependencyClasspath = {
+            val depStrings = json.fields.get("dependencies").map(_.convertTo[List[String]]).getOrElse(Nil)
+            val deps = depStrings.flatMap(d => DependencyParser.dependency(d, scalaVersion).right.toSeq)
+            val artifacts = Fetch().addDependencies(deps: _*).run
+            artifacts.map(_.getAbsolutePath).toList
+        }
+        val classpath = (preClasspath :: userClasspath :: dependencyClasspath).mkString(classPathSeparator)
         s"$java -cp $classpath $className $debug $trace --uuid $uuid --port $port --scalacopts $scalacOptions"
 
+      case Failure(_) =>
+        logger.info("Could not find scalavista.json - proceeding without.")
+        val classpath = (preClasspath :: libJars).mkString(classPathSeparator)
+        val scalacOptions = combineScalacOptions(defaultScalacOptions)
+        s"$java -cp $classpath $className $debug $trace --uuid $uuid --port $port --scalacopts $scalacOptions"
     }
 
     // spawn the server process
@@ -99,18 +105,18 @@ object Launcher {
     logger.info("Launching server...")
     val serverProcess = Process(cmd).run
 
-    // we want to load all known Scala source files
-    val sources = jsonTry match {
-      case Success(json) =>
-        json.fields("sources").convertTo[List[String]]
-      case Failure(_) =>
-        file".".listRecursively
+    // load all known Scala source files
+    lazy val allSources = file".".listRecursively
           .filter(f => f.extension == Some(".scala") || f.extension == Some(".java"))
           .map(_.pathAsString)
           .toList
+    val sources = jsonTry match {
+      case Success(json) =>
+        json.fields.get("sources").map(_.convertTo[List[String]]).getOrElse(allSources)
+      case Failure(_) => allSources
     }
 
-    logger.debug(s"sources to load: ${sources.mkString("\n")}")
+    logger.debug(s"Sources to load: ${sources.mkString("\n")}")
 
     implicit val system = ActorSystem()
     implicit val materializer = ActorMaterializer()
@@ -128,7 +134,7 @@ object Launcher {
           Unmarshal(res.entity).to[String].onComplete {
             case Success(body) =>
               if (body != uuid) {
-                println(s"uuid not matching - it seems that an instance of scalavista server is already running on port $port - try a different port.")
+                logger.error(s"uuid not matching - it seems that an instance of scalavista server is already running on port $port - try a different port.")
                 serverProcess.destroy()
                 System.exit(0)
               }
@@ -147,19 +153,16 @@ object Launcher {
                       HttpEntity(ContentTypes.`application/json`, data.compactPrint)
                   ))
                 .onComplete {
-
                   case Success(res) =>
                     logger.debug("Successfully loaded source files.")
                     logger.info(s"Scalavista server up and running at $serverUrl.")
                   case Failure(_) => logger.warn("Failed to load source files.")
-
                 }
             case Failure(_) =>
-              println("failed to start server - quitting.")
+              logger.error("Failed to start server - quitting.")
               serverProcess.destroy()
               System.exit(0)
           }
-
         case Failure(_) =>
           logger.error("Failed to start server - quitting.")
           serverProcess.destroy()
