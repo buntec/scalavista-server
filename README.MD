@@ -44,7 +44,7 @@ then any jar in a `lib` subfolder of where the server was launched (your project
 1. `sources` - a list of Scala or Java source files; if this field is missing then all `*.scala` and `*.java` files
  in the directory where the server was launched (the root of your project) and any of its subdirectories (recursively) will be loaded.
 1. `scalacOptions` - a list of scalac compiler options, e.g., `["-deprecation", "-feature"]`; uses sensible defaults if missing.
-1. `classpath` - a list of items (e.g., jars) to be added to the classpath.
+1. `classpath` - a list of items (e.g., jars) to be added to the classpath. Typically not needed when the file is created manually as dependencies are resolved automatically from the `dependencies` field.
 
 You can use the [sbt-scalavista](https://github.com/buntec/sbt-scalavista)
 plugin to generate a `scalavista.json` file for your project.
