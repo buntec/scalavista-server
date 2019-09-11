@@ -1,7 +1,7 @@
 lazy val scalavista = (project in file("."))
     .settings(
       name := "scalavista-server",
-      version := "0.1.13",
+      version := "0.2.0",
       scalaVersion := "2.13.0",
       crossScalaVersions := Seq("2.11.12", "2.12.8", "2.13.0"),
       fork := true,

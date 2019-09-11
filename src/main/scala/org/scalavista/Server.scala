@@ -8,73 +8,23 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
 
-import scala.reflect.internal.util.{Position, BatchSourceFile}
-//import scala.reflect.io.AbstractFile
+import scala.reflect.internal.util.Position
 
 object Server extends JsonSupport {
 
-  private val driveLetter = raw"^[a-zA-Z]:\\".r
-
-  def main(args: Array[String]): Unit = {
-
-    val conf = new ServerCliConf(args.toIndexedSeq)
-
-    val port = conf.port()
-    val uuid = conf.uuid()
-
-    val logger =
-      if (conf.trace())
-        Logger(Logger.Trace)
-      else if (conf.debug())
-        Logger(Logger.Debug)
-      else
-        Logger(Logger.Info)
-
-    logger.debug(s"port: $port")
+  def run(engine: Engine, port: Int, uuid: String, logger: Logger): Unit = {
 
     implicit val system = ActorSystem("scalavista-actor-system")
     implicit val materializer = ActorMaterializer()
     implicit val executionContext = system.dispatcher
 
-    val scalacOptions = conf.scalacopts.toOption match {
-      case Some(opts) =>
-        opts.stripPrefix("w").stripSuffix("w").split("&#").toSeq
-      case _ => Seq()
-    }
-
-    logger.debug(s"scalacOptions: $scalacOptions")
-
-    val engine = Engine(scalacOptions, logger)
-
-    val isWindows = System.getProperty("os.name").startsWith("Windows")
-
-    def newSourceFile(code: String, filepath: String): BatchSourceFile = {
-      //val file = AbstractFile.getFile(filepath)
-      //new BatchSourceFile(file, code.toArray)
-      val normalizedFilepath = if (isWindows) {
-        driveLetter.findFirstIn(filepath) match {
-            case Some(_) => s"${filepath.head.toUpper}${filepath.tail}"
-            case None => filepath
-          }
-        } else {
-          filepath
-        }
-      engine.newSourceFile(code, normalizedFilepath)
-    }
-
-    def reloadFiles(filePaths: List[String], contents: List[String]): Unit = {
-      val sourceFiles = (filePaths zip contents).map {
-        case (path, content) => newSourceFile(content, path)
-      }
-      engine.reloadFiles(sourceFiles)
-    }
 
     val route =
       path("reload-file") {
         post {
           decodeRequest {
             entity(as[ReloadFileRequest]) { req =>
-              reloadFiles(List(req.filename), List(req.fileContents))
+              engine.reloadFiles(List((req.filename, req.fileContents)).toMap)
               complete(StatusCodes.OK)
             }
           }
@@ -83,7 +33,7 @@ object Server extends JsonSupport {
         post {
           decodeRequest {
             entity(as[ReloadFilesRequest]) { req =>
-              reloadFiles(req.filenames, req.fileContents)
+              engine.reloadFiles((req.filenames zip req.fileContents).toMap)
               complete(StatusCodes.OK)
             }
           }
@@ -92,9 +42,31 @@ object Server extends JsonSupport {
         post {
           decodeRequest {
             entity(as[TypeAtRequest]) { req =>
-              val file = newSourceFile(req.fileContents, req.filename)
+              val file = engine.newSourceFileWithPathNormalization(req.fileContents, req.filename)
               val pos = Position.offset(file, req.offset)
               val result = Try(engine.getTypeAt(pos)).getOrElse("")
+              complete((StatusCodes.OK, result))
+            }
+          }
+        }
+      } ~ path("ask-kind-at") {
+        post {
+          decodeRequest {
+            entity(as[KindAtRequest]) { req =>
+              val file = engine.newSourceFileWithPathNormalization(req.fileContents, req.filename)
+              val pos = Position.offset(file, req.offset)
+              val result = Try(engine.getKindAt(pos)).getOrElse("")
+              complete((StatusCodes.OK, result))
+            }
+          }
+        }
+      } ~ path("ask-fully-qualified-name-at") {
+        post {
+          decodeRequest {
+            entity(as[FullyQualifiedNameAtRequest]) { req =>
+              val file = engine.newSourceFileWithPathNormalization(req.fileContents, req.filename)
+              val pos = Position.offset(file, req.offset)
+              val result = Try(engine.getFullyQualifiedNameAt(pos)).getOrElse("")
               complete((StatusCodes.OK, result))
             }
           }
@@ -103,7 +75,7 @@ object Server extends JsonSupport {
         post {
           decodeRequest {
             entity(as[PosAtRequest]) { req =>
-              val file = newSourceFile(req.fileContents, req.filename)
+              val file = engine.newSourceFileWithPathNormalization(req.fileContents, req.filename)
               val pos = Position.offset(file, req.offset)
               val (s, p) = engine.getPosAt(pos)
               val result = Map("symbol" -> s.toString,
@@ -119,7 +91,7 @@ object Server extends JsonSupport {
         post {
           decodeRequest {
             entity(as[DocAtRequest]) { req =>
-              val file = newSourceFile(req.fileContents, req.filename)
+              val file = engine.newSourceFileWithPathNormalization(req.fileContents, req.filename)
               val pos = Position.offset(file, req.offset)
               val doc = Try(engine.getDocAt(pos)).getOrElse("")
               complete((StatusCodes.OK, doc))
@@ -143,7 +115,7 @@ object Server extends JsonSupport {
         post {
           decodeRequest {
             entity(as[TypeCompletionRequest]) { req =>
-              val file = newSourceFile(req.fileContents, req.filename)
+              val file = engine.newSourceFileWithPathNormalization(req.fileContents, req.filename)
               val pos = Position.offset(file, req.offset)
               val result = engine
                 .getTypeCompletion(pos)
@@ -156,7 +128,7 @@ object Server extends JsonSupport {
         post {
           decodeRequest {
             entity(as[ScopeCompletionRequest]) { req =>
-              val file = newSourceFile(req.fileContents, req.filename)
+              val file = engine.newSourceFileWithPathNormalization(req.fileContents, req.filename)
               val pos = Position.offset(file, req.offset)
               val result = engine.getScopeCompletion(pos)
               complete((StatusCodes.OK, result))

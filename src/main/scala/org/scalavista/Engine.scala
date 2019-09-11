@@ -19,17 +19,19 @@ object Engine {
 
   trait Dummy
 
-  def apply(compilerOptions: Seq[String], logger: Logger): Engine = {
+  def apply(classPath: String, compilerOptions: Seq[String], logger: Logger): Engine = {
 
     val settings = new Settings()
     settings.processArgumentString(compilerOptions.mkString(" ")) match {
       case (success, unprocessed) =>
-        logger.debug(
-          s"processArguments: success: $success, unprocessed: $unprocessed")
+        require(success, "failed to parse compiler options")
+        require(unprocessed.isEmpty, s"these compiler options were not accepeted: ${unprocessed.mkString(", ")}")
+        logger.debug(s"processArguments: success: $success, unprocessed: $unprocessed")
     }
 
+    settings.classpath.value = classPath
     settings.embeddedDefaults[Dummy] // why is this needed?
-    settings.usejavacp.value = true // what does this do exactly?
+    //settings.usejavacp.value = true // what does this do exactly?
 
     val reporter = new StoreReporter()
 
@@ -66,6 +68,32 @@ class Engine(settings: Settings,
         context: Context): InteractiveTyper with ScaladocTyper =
       new Typer(context) with InteractiveTyper with ScaladocTyper
   }
+
+
+  private val driveLetter = raw"^[a-zA-Z]:\\".r
+  private val isWindows = System.getProperty("os.name").startsWith("Windows")
+
+  def newSourceFileWithPathNormalization(code: String, filepath: String): BatchSourceFile = {
+    //val file = AbstractFile.getFile(filepath)
+    //new BatchSourceFile(file, code.toArray)
+    val normalizedFilepath = if (isWindows) {
+      driveLetter.findFirstIn(filepath) match {
+          case Some(_) => s"${filepath.head.toUpper}${filepath.tail}"
+          case None => filepath
+        }
+      } else {
+        filepath
+      }
+    newSourceFile(code, normalizedFilepath)
+  }
+
+  def reloadFiles(files: Map[String, String]): Unit = {
+    val sourceFiles = files.map {
+      case (path, content) => newSourceFileWithPathNormalization(content, path)
+    }.toList
+    reloadFiles(sourceFiles)
+  }
+
 
   def reloadFiles(files: List[SourceFile]): Unit = {
 
@@ -104,16 +132,13 @@ class Engine(settings: Settings,
   }
 
   def getTypeAt(pos: Position): String = {
-
-    logger.debug(
-      Position.formatMessage(pos, "Getting type at position:", false))
+    logger.debug(Position.formatMessage(pos, "Getting type at position:", false))
     val askTypeAtResponse = new Response[Tree]
     askTypeAt(pos, askTypeAtResponse)
     val result = getResult(askTypeAtResponse) match {
       case Some(tree) =>
-        logger.debug(
-          s"tree: ${ask(() => tree.toString)}\n raw tree: ${ask(() => showRaw(tree))}"
-        )
+        logger.debug(s"tree: ${ask(() => tree.toString)}")
+        logger.debug(s"raw tree: ${ask(() => showRaw(tree))}")
         tree match {
           case Literal(constant) =>
             ScalaTry(ask(() => constant.tpe.toString)).getOrElse("")
@@ -124,7 +149,38 @@ class Engine(settings: Settings,
     }
     logger.debug(s"getTypeAt: $result")
     result
+  }
 
+  def getFullyQualifiedNameAt(pos: Position): String = {
+    logger.debug(Position.formatMessage(pos, "Getting fully qualified name at position:", false))
+    val askTypeAtResponse = new Response[Tree]
+    askTypeAt(pos, askTypeAtResponse)
+    val result = getResult(askTypeAtResponse) match {
+      case Some(tree) =>
+        tree match {
+          case Literal(constant) => ""
+          case _ => ScalaTry(ask(() => tree.symbol.fullNameString)).getOrElse("")
+        }
+      case None => ""
+    }
+    logger.debug(s"getFullyQualifiedNameAt: $result")
+    result
+  }
+
+  def getKindAt(pos: Position): String = {
+    logger.debug(Position.formatMessage(pos, "Getting kind at position:", false))
+    val askTypeAtResponse = new Response[Tree]
+    askTypeAt(pos, askTypeAtResponse)
+    val result = getResult(askTypeAtResponse) match {
+      case Some(tree) =>
+        tree match {
+          case Literal(constant) => "literal constant"
+          case _ => ScalaTry(ask(() => tree.symbol.kindString)).getOrElse("")
+        }
+      case None => ""
+    }
+    logger.debug(s"getKindAt: $result")
+    result
   }
 
   def getPosAt(pos: Position): (String, Position) = {
@@ -144,7 +200,11 @@ class Engine(settings: Settings,
       logger.debug(s"sym.owner: ${symbol.owner.fullNameString}")
 
       val symSourceFile = Option(symbol.sourceFile)
-      logger.debug(s"sym.sourceFile: $symSourceFile")
+      val pls = symbol.paramLists.map(l => l.map(l => l.fullNameString).mkString(", ")).mkString("\n")
+      logger.debug(s"sym.paramList: ${pls}")
+      logger.debug(s"sym.associatedFile: ${symbol.associatedFile}")
+      logger.debug(s"sym.sanitizedKindString: ${symbol.kindString}")
+      logger.debug(s"sym.sourceFile: ${symSourceFile}")
       logger.debug(s"sym.sourceFile.path: ${symSourceFile.map(_.path)}")
 
       val foundPos = symSourceFile

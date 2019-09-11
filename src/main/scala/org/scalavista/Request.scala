@@ -5,6 +5,12 @@ sealed trait Request
 case class TypeAtRequest(filename: String, fileContents: String, offset: Int)
     extends Request
 
+case class KindAtRequest(filename: String, fileContents: String, offset: Int)
+    extends Request
+
+case class FullyQualifiedNameAtRequest(filename: String, fileContents: String, offset: Int)
+    extends Request
+
 case class PosAtRequest(filename: String, fileContents: String, offset: Int)
     extends Request
 

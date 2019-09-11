@@ -5,6 +5,8 @@ import spray.json.DefaultJsonProtocol
 
 trait JsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val typeAtRequestFormat = jsonFormat3(TypeAtRequest)
+  implicit val kindAtRequestFormat = jsonFormat3(KindAtRequest)
+  implicit val fullyQualifiedNameAtRequestFormat = jsonFormat3(FullyQualifiedNameAtRequest)
   implicit val posAtRequestFormat = jsonFormat3(PosAtRequest)
   implicit val docAtRequestFormat = jsonFormat3(DocAtRequest)
   implicit val reloadFileRequestFormat = jsonFormat2(ReloadFileRequest)
