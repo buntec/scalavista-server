@@ -229,7 +229,7 @@ class Engine(settings: Settings,
     }.getOrElse(("", NoPosition))
   }
 
-  def getTypeCompletion(pos: Position): List[(String, String)] = {
+  def getTypeCompletion(pos: Position): List[(String, String, String)] = {
     logger.debug(
       Position.formatMessage(pos, "Getting type completion at position:", false)
     )
@@ -240,14 +240,17 @@ class Engine(settings: Settings,
       case None     => Nil
     }
     val res = ask(
-      () => result.map(member => (member.sym.nameString, member.infoString)))
+      () => result.filter(_.accessible).map(member =>
+          (member.sym.nameString, member.infoString, member.sym.kindString)
+        )
+      )
     logger.debug("Number of type completion items: " + res.length)
     logger.trace("Result of type completion: " + res.mkString("\n"))
     res
 
   }
 
-  def getScopeCompletion(pos: Position): List[(String, String)] = {
+  def getScopeCompletion(pos: Position): List[(String, String, String)] = {
     logger.debug(
       Position
         .formatMessage(pos, "Getting scope completion at position:", false)
@@ -259,7 +262,10 @@ class Engine(settings: Settings,
       case None     => Nil
     }
     val res = ask(
-      () => result.map(member => (member.sym.nameString, member.infoString)))
+      () => result.filter(_.accessible).map(member =>
+          (member.sym.nameString, member.infoString, member.sym.kindString)
+        )
+      )
     logger.debug("Number of scope completion items: " + res.length)
     logger.trace("Result of scope completion: " + res.mkString("\n"))
     res

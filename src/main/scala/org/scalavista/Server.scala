@@ -117,9 +117,7 @@ object Server extends JsonSupport {
             entity(as[TypeCompletionRequest]) { req =>
               val file = engine.newSourceFileWithPathNormalization(req.fileContents, req.filename)
               val pos = Position.offset(file, req.offset)
-              val result = engine
-                .getTypeCompletion(pos)
-                .filterNot(_._2.startsWith("[inaccessible]"))
+              val result = engine.getTypeCompletion(pos)
               complete((StatusCodes.OK, result))
             }
           }

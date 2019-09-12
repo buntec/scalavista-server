@@ -29,6 +29,7 @@ object Launcher {
       else
         Logger(Logger.Info)
 
+    logger.info("Launching scalavista server...")
 
     val preClasspath = System.getProperty("java.class.path")
     val classPathSeparator = JavaFile.pathSeparator //if (System.getProperty("os.name").startsWith("Windows")) ";" else ":"
